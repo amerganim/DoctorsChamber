@@ -182,6 +182,22 @@ class _ChamberTile extends ConsumerWidget {
                             fontStyle: FontStyle.italic)),
                 ],
               ),
+              if (queueAsync.value != null &&
+                  queueStatus != QueueStatus.pending) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.event_outlined,
+                        size: 14, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatQueueTime(queueAsync.value!),
+                      style: TextStyle(
+                          fontSize: 12, color: scheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ],
               if (queueStatus == QueueStatus.open || entries.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Wrap(
@@ -212,6 +228,16 @@ class _ChamberTile extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _formatQueueTime(Queue queue) {
+  if (queue.status == QueueStatus.closed && queue.closedAt != null) {
+    return 'Closed at ${formatTime12h(queue.closedAt!)}';
+  }
+  if (queue.status == QueueStatus.open && queue.openedAt != null) {
+    return 'Opened at ${formatTime12h(queue.openedAt!)}';
+  }
+  return '';
 }
 
 class _StatPill extends StatelessWidget {

@@ -58,6 +58,14 @@ class QueueRepository {
     }, SetOptions(merge: true));
   }
 
+  Future<void> reopenQueue(String chamberId, String date) async {
+    await _queueDoc(chamberId, date).set({
+      'status': QueueStatus.open.name,
+      'doctorStatus': DoctorStatus.available.name,
+      'closedAt': null,
+    }, SetOptions(merge: true));
+  }
+
   Future<void> setDoctorStatus({
     required String chamberId,
     required String date,

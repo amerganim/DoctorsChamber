@@ -47,6 +47,13 @@ class QueueScreen extends ConsumerWidget {
               onPressed: () =>
                   _confirmCloseQueue(context, ref, chamberId, date),
             ),
+          if (queueAsync.value?.status == QueueStatus.closed)
+            IconButton(
+              tooltip: 'Reopen queue',
+              icon: const Icon(Icons.lock_open_outlined),
+              onPressed: () =>
+                  ref.read(queueRepositoryProvider).reopenQueue(chamberId, date),
+            ),
         ],
       ),
       body: queueAsync.when(
