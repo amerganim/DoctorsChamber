@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "789245868214",
+    "project_id": "doctorschamber-d4aa3",
+    "storage_bucket": "doctorschamber-d4aa3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:789245868214:android:c6f63f61b5ab8f96f80e17",
+        "android_client_info": {
+          "package_name": "com.doctorschamber.doctors_chamber"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnqUZaLxhET32LaY-KbquJqzex4P8ORSI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
