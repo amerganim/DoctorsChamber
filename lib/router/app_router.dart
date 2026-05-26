@@ -5,7 +5,11 @@ import '../features/auth/login_screen.dart';
 import '../features/auth/otp_verify_screen.dart';
 import '../features/auth/role_select_screen.dart';
 import '../features/auth/user_role.dart';
+import '../features/chambers/add_chamber_screen.dart';
+import '../features/chambers/chambers_list_screen.dart';
 import '../features/doctor/doctor_home_screen.dart';
+import '../features/doctor/doctor_profile_editor_screen.dart';
+import '../features/patient/patient_doctor_view_screen.dart';
 import '../features/patient/patient_home_screen.dart';
 
 final appRouter = GoRouter(
@@ -32,8 +36,38 @@ final appRouter = GoRouter(
         ),
       ],
     ),
-    GoRoute(path: '/patient', builder: (_, _) => const PatientHomeScreen()),
-    GoRoute(path: '/doctor', builder: (_, _) => const DoctorHomeScreen()),
+    GoRoute(
+      path: '/patient',
+      builder: (_, _) => const PatientHomeScreen(),
+      routes: [
+        GoRoute(
+          path: 'doctor/:doctorId',
+          builder: (_, state) => PatientDoctorViewScreen(
+            doctorId: state.pathParameters['doctorId']!,
+          ),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/doctor',
+      builder: (_, _) => const DoctorHomeScreen(),
+      routes: [
+        GoRoute(
+          path: 'profile',
+          builder: (_, _) => const DoctorProfileEditorScreen(),
+        ),
+        GoRoute(
+          path: 'chambers',
+          builder: (_, _) => const ChambersListScreen(),
+          routes: [
+            GoRoute(
+              path: 'new',
+              builder: (_, _) => const AddChamberScreen(),
+            ),
+          ],
+        ),
+      ],
+    ),
     GoRoute(path: '/admin', builder: (_, _) => const AdminHomeScreen()),
   ],
 );

@@ -12,7 +12,7 @@ class RoleSelectScreen extends StatelessWidget {
 
   void _pickRole(BuildContext context, UserRole role) {
     if (_devSkipLogin) {
-      context.go(role.homeRoute);
+      context.push(role.homeRoute);
     } else {
       context.push('/login', extra: role);
     }
