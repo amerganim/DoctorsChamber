@@ -6,6 +6,8 @@ import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../doctor/doctor_profile.dart';
 import '../doctor/doctor_profile_repository.dart';
+import 'package:go_router/go_router.dart';
+
 import '../queue/queue.dart';
 import '../queue/queue_repository.dart';
 
@@ -179,9 +181,12 @@ class _ChamberTile extends ConsumerWidget {
     return Material(
       color: scheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
+      child: InkWell(
+        onTap: () => context.push('/patient/chamber/${chamber.id}'),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(chamber.name,
@@ -328,6 +333,7 @@ class _ChamberTile extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
