@@ -6,6 +6,8 @@ import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../doctor/doctor_profile.dart';
 import '../doctor/doctor_profile_repository.dart';
+import '../queue/queue.dart';
+import '../queue/queue_repository.dart';
 
 class PatientDoctorViewScreen extends ConsumerWidget {
   const PatientDoctorViewScreen({super.key, required this.doctorId});
@@ -150,16 +152,29 @@ class _DoctorDetail extends StatelessWidget {
   }
 }
 
-class _ChamberTile extends StatelessWidget {
+class _ChamberTile extends ConsumerWidget {
   const _ChamberTile({required this.chamber, required this.today});
 
   final Chamber chamber;
   final String today;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final openToday = chamber.days.contains(today);
+    final qKey = QueueKey(chamber.id, todayDateKey());
+    final queueAsync = ref.watch(queueStreamProvider(qKey));
+    final entriesAsync = ref.watch(queueEntriesStreamProvider(qKey));
+    final queue = queueAsync.value;
+    final entries = entriesAsync.value ?? const <QueueEntry>[];
+    final inConsultation = entries
+        .where((e) => e.status == QueueEntryStatus.inConsultation)
+        .firstOrNull;
+    final waitingCount = entries
+        .where((e) =>
+            e.status == QueueEntryStatus.waiting ||
+            e.status == QueueEntryStatus.arrived)
+        .length;
 
     return Material(
       color: scheme.surfaceContainerHighest,
@@ -228,20 +243,87 @@ class _ChamberTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: scheme.outlineVariant),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.people_outline,
-                      size: 16, color: scheme.onSurfaceVariant),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      openToday
-                          ? 'Queue not yet open today'
-                          : 'Closed today',
-                      style: TextStyle(
-                          fontSize: 12, color: scheme.onSurfaceVariant),
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        queue?.status == QueueStatus.open
+                            ? queue!.doctorStatus.icon
+                            : Icons.people_outline,
+                        size: 16,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          queue == null ||
+                                  queue.status == QueueStatus.pending
+                              ? (openToday
+                                  ? 'Queue not yet open today'
+                                  : 'Closed today')
+                              : queue.doctorStatus.displayName,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (queue != null && queue.statusNote.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.only(left: 24, top: 2),
+                      child: SizedBox.shrink(),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 24, top: 2),
+                      child: Text(
+                        queue.statusNote,
+                        style: TextStyle(
+                            fontSize: 11, color: scheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
+                  if (queue?.status == QueueStatus.open) ...[
+                    const Divider(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.medical_services_outlined,
+                            size: 14, color: scheme.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            inConsultation == null
+                                ? 'No active consultation'
+                                : 'Now serving: #${inConsultation.serial}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: inConsultation == null
+                                    ? scheme.onSurfaceVariant
+                                    : scheme.primary),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$waitingCount waiting',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

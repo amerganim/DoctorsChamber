@@ -33,3 +33,6 @@ doc/api/
 
 # Claude Code local config
 .claude/
+
+# Flutter tool crash logs
+flutter_*.log

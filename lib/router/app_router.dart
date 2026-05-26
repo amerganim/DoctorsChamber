@@ -11,6 +11,7 @@ import '../features/doctor/doctor_home_screen.dart';
 import '../features/doctor/doctor_profile_editor_screen.dart';
 import '../features/patient/patient_doctor_view_screen.dart';
 import '../features/patient/patient_home_screen.dart';
+import '../features/queue/queue_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -68,6 +69,17 @@ final appRouter = GoRouter(
         ),
       ],
     ),
-    GoRoute(path: '/admin', builder: (_, _) => const AdminHomeScreen()),
+    GoRoute(
+      path: '/admin',
+      builder: (_, _) => const AdminHomeScreen(),
+      routes: [
+        GoRoute(
+          path: 'queue/:chamberId',
+          builder: (_, state) => QueueScreen(
+            chamberId: state.pathParameters['chamberId']!,
+          ),
+        ),
+      ],
+    ),
   ],
 );
