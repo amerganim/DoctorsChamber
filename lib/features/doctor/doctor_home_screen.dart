@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../chambers/chamber_repository.dart';
 import 'doctor_profile_repository.dart';
 
 class DoctorHomeScreen extends ConsumerWidget {
@@ -95,15 +96,56 @@ class DoctorHomeScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                Text(
-                  'Queue and admin invites coming next.',
-                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
-                ),
+                const _ManageQueueSection(),
               ],
             ),
           );
         },
       ),
+    );
+  }
+}
+
+class _ManageQueueSection extends ConsumerWidget {
+  const _ManageQueueSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chambersAsync =
+        ref.watch(chambersByDoctorStreamProvider(kDevDoctorId));
+    final scheme = Theme.of(context).colorScheme;
+
+    final chambers = chambersAsync.value;
+    if (chambers == null || chambers.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Today's queues",
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurfaceVariant,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final c in chambers)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(c.name,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              trailing: TextButton(
+                onPressed: () => context.push('/admin/queue/${c.id}'),
+                child: const Text('Manage'),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
