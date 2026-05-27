@@ -70,6 +70,51 @@ class QueueRepository {
     }, SetOptions(merge: true));
   }
 
+  Future<void> openQueueWithEmptySlots({
+    required String chamberId,
+    required String date,
+    required int slotCount,
+  }) async {
+    final batch = _firestore.batch();
+    batch.set(_queueDoc(chamberId, date), {
+      'chamberId': chamberId,
+      'date': date,
+      'status': QueueStatus.open.name,
+      'doctorStatus': DoctorStatus.available.name,
+      'statusNote': '',
+      'openedAt': FieldValue.serverTimestamp(),
+      'closedAt': null,
+    }, SetOptions(merge: true));
+    for (var i = 1; i <= slotCount; i++) {
+      final doc = _entriesCol(chamberId, date).doc();
+      batch.set(doc, {
+        'serial': i,
+        'patientName': '',
+        'patientPhone': '',
+        'status': QueueEntryStatus.waiting.name,
+        'addedAt': FieldValue.serverTimestamp(),
+        'chamberId': chamberId,
+        'date': date,
+        'bookedBy': 'admin',
+        'bookedById': kDevAdminId,
+      });
+    }
+    await batch.commit();
+  }
+
+  Future<void> updateEntryDetails({
+    required String chamberId,
+    required String date,
+    required String entryId,
+    required String name,
+    required String phone,
+  }) async {
+    await _entriesCol(chamberId, date).doc(entryId).update({
+      'patientName': name,
+      'patientPhone': phone,
+    });
+  }
+
   Future<void> setDoctorStatus({
     required String chamberId,
     required String date,

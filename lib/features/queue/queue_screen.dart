@@ -71,7 +71,11 @@ class QueueScreen extends ConsumerWidget {
         data: (queue) {
           final status = queue?.status ?? QueueStatus.pending;
           if (status == QueueStatus.pending) {
-            return _PendingState(chamberId: chamberId, date: date);
+            return _PendingState(
+              chamberId: chamberId,
+              date: date,
+              chamber: chamber,
+            );
           }
           return _QueueBody(
             chamberId: chamberId,
@@ -305,10 +309,36 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
 }
 
 class _PendingState extends ConsumerWidget {
-  const _PendingState({required this.chamberId, required this.date});
+  const _PendingState({
+    required this.chamberId,
+    required this.date,
+    required this.chamber,
+  });
 
   final String chamberId;
   final String date;
+  final Chamber? chamber;
+
+  bool get _isQueueOnly =>
+      chamber?.bookingMode == ChamberBookingMode.queueOnly;
+
+  Future<void> _openQueue(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(queueRepositoryProvider);
+    if (!_isQueueOnly) {
+      await repo.openQueue(chamberId, date);
+      return;
+    }
+    final slotCount = await showDialog<int>(
+      context: context,
+      builder: (_) => const _OpenSlotsDialog(),
+    );
+    if (slotCount == null || slotCount <= 0) return;
+    await repo.openQueueWithEmptySlots(
+      chamberId: chamberId,
+      date: date,
+      slotCount: slotCount,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -329,20 +359,80 @@ class _PendingState extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Open the queue to start adding patients.',
+              _isQueueOnly
+                  ? 'Walk-in chamber. Set today\'s token count to start.'
+                  : 'Open the queue to start adding patients.',
               textAlign: TextAlign.center,
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 32),
             FilledButton.icon(
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Open queue'),
-              onPressed: () =>
-                  ref.read(queueRepositoryProvider).openQueue(chamberId, date),
+              label: Text(_isQueueOnly ? 'Set tokens & open' : 'Open queue'),
+              onPressed: () => _openQueue(context, ref),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _OpenSlotsDialog extends StatefulWidget {
+  const _OpenSlotsDialog();
+
+  @override
+  State<_OpenSlotsDialog> createState() => _OpenSlotsDialogState();
+}
+
+class _OpenSlotsDialogState extends State<_OpenSlotsDialog> {
+  final _controller = TextEditingController(text: '30');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Today's tokens"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'How many empty token slots should the queue start with? '
+            'Names get filled in as patients arrive.',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 3,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Number of tokens',
+              counterText: '',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final n = int.tryParse(_controller.text.trim());
+            if (n != null && n > 0 && n <= 200) Navigator.of(context).pop(n);
+          },
+          child: const Text('Open'),
+        ),
+      ],
     );
   }
 }
@@ -763,6 +853,25 @@ class _EntryCard extends ConsumerWidget {
     };
   }
 
+  Future<void> _showAddDetailsDialog(
+      BuildContext context, QueueRepository repo) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _EntryDetailsDialog(
+        serial: entry.serial,
+        initialName: entry.patientName,
+        initialPhone: entry.patientPhone,
+        onSubmit: (name, phone) => repo.updateEntryDetails(
+          chamberId: chamberId,
+          date: date,
+          entryId: entry.id,
+          name: name,
+          phone: phone,
+        ),
+      ),
+    );
+  }
+
   Future<void> _safeRun(
     BuildContext context,
     Future<void> Function() action, {
@@ -903,6 +1012,16 @@ class _EntryCard extends ConsumerWidget {
     final serial = '#${entry.serial}';
     switch (entry.status) {
       case QueueEntryStatus.waiting:
+        if (entry.patientName.isEmpty) {
+          return [
+            Expanded(
+              child: FilledButton.tonal(
+                onPressed: () => _showAddDetailsDialog(context, repo),
+                child: const Text('Add patient details'),
+              ),
+            ),
+          ];
+        }
         return [
           Expanded(
             child: FilledButton.tonal(
@@ -979,5 +1098,106 @@ class _EntryCard extends ConsumerWidget {
           ),
         ];
     }
+  }
+}
+
+class _EntryDetailsDialog extends StatefulWidget {
+  const _EntryDetailsDialog({
+    required this.serial,
+    required this.initialName,
+    required this.initialPhone,
+    required this.onSubmit,
+  });
+
+  final int serial;
+  final String initialName;
+  final String initialPhone;
+  final Future<void> Function(String name, String phone) onSubmit;
+
+  @override
+  State<_EntryDetailsDialog> createState() => _EntryDetailsDialogState();
+}
+
+class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
+  late final _nameController = TextEditingController(text: widget.initialName);
+  late final _phoneController =
+      TextEditingController(text: widget.initialPhone);
+  final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await widget.onSubmit(
+          _nameController.text.trim(), _phoneController.text.trim());
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Patient #${widget.serial}'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _nameController,
+              autofocus: true,
+              enabled: !_saving,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Patient name'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              enabled: !_saving,
+              maxLength: 11,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Phone (optional)',
+                counterText: '',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
+        ),
+      ],
+    );
   }
 }
