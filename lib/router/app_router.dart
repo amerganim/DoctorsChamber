@@ -14,6 +14,7 @@ import '../features/patient/patient_chamber_queue_screen.dart';
 import '../features/patient/patient_doctor_view_screen.dart';
 import '../features/patient/patient_home_screen.dart';
 import '../features/queue/queue_screen.dart';
+import '../features/queue/scan_register_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -90,6 +91,14 @@ final appRouter = GoRouter(
           builder: (_, state) => QueueScreen(
             chamberId: state.pathParameters['chamberId']!,
           ),
+          routes: [
+            GoRoute(
+              path: 'scan',
+              builder: (_, state) => ScanRegisterScreen(
+                chamberId: state.pathParameters['chamberId']!,
+              ),
+            ),
+          ],
         ),
       ],
     ),

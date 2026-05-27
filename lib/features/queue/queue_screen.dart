@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../core/weekday.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
@@ -40,13 +42,20 @@ class QueueScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(chamber?.name ?? 'Queue'),
         actions: [
-          if (queueAsync.value?.status == QueueStatus.open)
+          if (queueAsync.value?.status == QueueStatus.open) ...[
+            IconButton(
+              tooltip: 'Scan register',
+              icon: const Icon(Icons.document_scanner_outlined),
+              onPressed: () =>
+                  context.push('/admin/queue/$chamberId/scan'),
+            ),
             IconButton(
               tooltip: 'Close queue',
               icon: const Icon(Icons.lock_outline),
               onPressed: () =>
                   _confirmCloseQueue(context, ref, chamberId, date),
             ),
+          ],
           if (queueAsync.value?.status == QueueStatus.closed)
             IconButton(
               tooltip: 'Reopen queue',

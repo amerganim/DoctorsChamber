@@ -109,6 +109,42 @@ class QueueRepository {
     });
   }
 
+  Future<List<int>> bulkAddEntries({
+    required String chamberId,
+    required String date,
+    required List<({String name, String phone})> patients,
+  }) async {
+    if (patients.isEmpty) return const [];
+    final snap = await _entriesCol(chamberId, date)
+        .orderBy('serial', descending: true)
+        .limit(1)
+        .get();
+    var nextSerial = snap.docs.isEmpty
+        ? 1
+        : ((snap.docs.first.data()['serial'] as num).toInt() + 1);
+
+    final batch = _firestore.batch();
+    final assigned = <int>[];
+    for (final p in patients) {
+      final doc = _entriesCol(chamberId, date).doc();
+      batch.set(doc, {
+        'serial': nextSerial,
+        'patientName': p.name,
+        'patientPhone': p.phone,
+        'status': QueueEntryStatus.waiting.name,
+        'addedAt': FieldValue.serverTimestamp(),
+        'chamberId': chamberId,
+        'date': date,
+        'bookedBy': 'admin',
+        'bookedById': kDevAdminId,
+      });
+      assigned.add(nextSerial);
+      nextSerial++;
+    }
+    await batch.commit();
+    return assigned;
+  }
+
   Future<({String? errorMessage, int? assignedSerial})> bookForPatient({
     required Chamber chamber,
     required String date,
