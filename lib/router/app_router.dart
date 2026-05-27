@@ -9,6 +9,7 @@ import '../features/chambers/add_chamber_screen.dart';
 import '../features/chambers/chambers_list_screen.dart';
 import '../features/doctor/doctor_home_screen.dart';
 import '../features/doctor/doctor_profile_editor_screen.dart';
+import '../features/patient/my_bookings_screen.dart';
 import '../features/patient/patient_chamber_queue_screen.dart';
 import '../features/patient/patient_doctor_view_screen.dart';
 import '../features/patient/patient_home_screen.dart';
@@ -53,6 +54,10 @@ final appRouter = GoRouter(
           builder: (_, state) => PatientChamberQueueScreen(
             chamberId: state.pathParameters['chamberId']!,
           ),
+        ),
+        GoRoute(
+          path: 'bookings',
+          builder: (_, _) => const MyBookingsScreen(),
         ),
       ],
     ),

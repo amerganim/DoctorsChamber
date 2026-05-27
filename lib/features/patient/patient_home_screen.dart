@@ -39,6 +39,11 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         title: const Text('Find a doctor'),
         actions: [
           IconButton(
+            tooltip: 'My Bookings',
+            icon: const Icon(Icons.event_outlined),
+            onPressed: () => context.push('/patient/bookings'),
+          ),
+          IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
             onPressed: () => context.go('/'),

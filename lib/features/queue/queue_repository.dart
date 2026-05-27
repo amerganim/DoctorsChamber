@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../chambers/chamber.dart';
 import 'queue.dart';
+
+const kDevPatientId = 'dev-patient';
+const kDevAdminId = 'dev-admin';
 
 class QueueRepository {
   QueueRepository(this._firestore);
@@ -98,6 +102,106 @@ class QueueRepository {
       'patientPhone': patientPhone,
       'status': QueueEntryStatus.waiting.name,
       'addedAt': FieldValue.serverTimestamp(),
+      'chamberId': chamberId,
+      'date': date,
+      'bookedBy': 'admin',
+      'bookedById': kDevAdminId,
+    });
+  }
+
+  Future<({String? errorMessage, int? assignedSerial})> bookForPatient({
+    required Chamber chamber,
+    required String date,
+    required String patientId,
+    required String patientName,
+    required String patientPhone,
+    required int? age,
+  }) async {
+    if (chamber.bookingMode == ChamberBookingMode.queueOnly) {
+      return (
+        errorMessage: 'This chamber is walk-in only.',
+        assignedSerial: null,
+      );
+    }
+
+    final queueSnap = await _queueDoc(chamber.id, date).get();
+    final queueData = queueSnap.data();
+    if (queueData == null ||
+        QueueStatus.fromString(queueData['status'] as String?) !=
+            QueueStatus.open) {
+      return (
+        errorMessage: "Today's queue isn't open yet. Please try later.",
+        assignedSerial: null,
+      );
+    }
+
+    final myExisting = await _entriesCol(chamber.id, date)
+        .where('bookedById', isEqualTo: patientId)
+        .get();
+    for (final doc in myExisting.docs) {
+      final status =
+          QueueEntryStatus.fromString(doc.data()['status'] as String?);
+      if (status.isActive) {
+        final existingSerial = (doc.data()['serial'] as num).toInt();
+        return (
+          errorMessage:
+              "You already have an active booking here (#$existingSerial).",
+          assignedSerial: null,
+        );
+      }
+    }
+
+    if (chamber.bookingMode == ChamberBookingMode.hybridWithCap) {
+      final cap = chamber.dailyAppBookingCap ?? 0;
+      if (cap > 0) {
+        final existing = await _entriesCol(chamber.id, date)
+            .where('bookedBy', isEqualTo: 'patient')
+            .get();
+        if (existing.docs.length >= cap) {
+          return (
+            errorMessage:
+                "Today's app bookings full. Please call the chamber.",
+            assignedSerial: null,
+          );
+        }
+      }
+    }
+
+    final snap = await _entriesCol(chamber.id, date)
+        .orderBy('serial', descending: true)
+        .limit(1)
+        .get();
+    final nextSerial = snap.docs.isEmpty
+        ? 1
+        : ((snap.docs.first.data()['serial'] as num).toInt() + 1);
+
+    await _entriesCol(chamber.id, date).add({
+      'serial': nextSerial,
+      'patientName': patientName,
+      'patientPhone': patientPhone,
+      'age': age,
+      'status': QueueEntryStatus.waiting.name,
+      'addedAt': FieldValue.serverTimestamp(),
+      'chamberId': chamber.id,
+      'date': date,
+      'bookedBy': 'patient',
+      'bookedById': patientId,
+    });
+
+    return (errorMessage: null, assignedSerial: nextSerial);
+  }
+
+  Stream<List<QueueEntry>> watchPatientBookings(String patientId) {
+    return _firestore
+        .collectionGroup('entries')
+        .where('bookedById', isEqualTo: patientId)
+        .snapshots()
+        .map((snap) {
+      final entries = snap.docs
+          .map((d) => QueueEntry.fromMap(d.id, d.data()))
+          .toList();
+      entries.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+      return entries;
     });
   }
 
@@ -164,4 +268,9 @@ final queueStreamProvider =
 final queueEntriesStreamProvider =
     StreamProvider.family<List<QueueEntry>, QueueKey>((ref, key) {
   return ref.watch(queueRepositoryProvider).watchEntries(key.chamberId, key.date);
+});
+
+final patientBookingsStreamProvider =
+    StreamProvider.family<List<QueueEntry>, String>((ref, patientId) {
+  return ref.watch(queueRepositoryProvider).watchPatientBookings(patientId);
 });

@@ -6,6 +6,7 @@ import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../queue/queue.dart';
 import '../queue/queue_repository.dart';
+import 'book_serial_dialog.dart';
 
 const _avgConsultationMinutes = 10;
 
@@ -25,6 +26,10 @@ class PatientChamberQueueScreen extends ConsumerWidget {
     final queueAsync = ref.watch(queueStreamProvider(qKey));
     final entriesAsync = ref.watch(queueEntriesStreamProvider(qKey));
 
+    final canBook = chamber != null &&
+        chamber.bookingMode != ChamberBookingMode.queueOnly &&
+        queueAsync.value?.status == QueueStatus.open;
+
     return Scaffold(
       appBar: AppBar(title: Text(chamber?.name ?? 'Chamber')),
       body: SafeArea(
@@ -42,7 +47,26 @@ class PatientChamberQueueScreen extends ConsumerWidget {
           ),
         ),
       ),
+      floatingActionButton: canBook
+          ? FloatingActionButton.extended(
+              onPressed: () => _book(context, chamber),
+              icon: const Icon(Icons.add),
+              label: const Text('Book serial'),
+            )
+          : null,
     );
+  }
+
+  Future<void> _book(BuildContext context, Chamber chamber) async {
+    final serial = await showDialog<int>(
+      context: context,
+      builder: (_) => BookSerialDialog(chamber: chamber),
+    );
+    if (serial != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Booked as #$serial')),
+      );
+    }
   }
 }
 

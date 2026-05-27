@@ -127,6 +127,11 @@ class QueueEntry {
     required this.patientPhone,
     required this.status,
     required this.addedAt,
+    this.chamberId = '',
+    this.date = '',
+    this.age,
+    this.bookedBy = 'admin',
+    this.bookedById = '',
   });
 
   final String id;
@@ -135,6 +140,11 @@ class QueueEntry {
   final String patientPhone;
   final QueueEntryStatus status;
   final DateTime addedAt;
+  final String chamberId;
+  final String date;
+  final int? age;
+  final String bookedBy;
+  final String bookedById;
 
   factory QueueEntry.fromMap(String id, Map<String, dynamic> map) {
     return QueueEntry(
@@ -144,6 +154,11 @@ class QueueEntry {
       patientPhone: (map['patientPhone'] as String?) ?? '',
       status: QueueEntryStatus.fromString(map['status'] as String?),
       addedAt: (map['addedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      chamberId: (map['chamberId'] as String?) ?? '',
+      date: (map['date'] as String?) ?? '',
+      age: (map['age'] as num?)?.toInt(),
+      bookedBy: (map['bookedBy'] as String?) ?? 'admin',
+      bookedById: (map['bookedById'] as String?) ?? '',
     );
   }
 }
