@@ -96,6 +96,8 @@ class Queue {
     required this.statusNote,
     this.openedAt,
     this.closedAt,
+    this.broadcastMessage = '',
+    this.broadcastSentAt,
   });
 
   final String chamberId;
@@ -105,6 +107,8 @@ class Queue {
   final String statusNote;
   final DateTime? openedAt;
   final DateTime? closedAt;
+  final String broadcastMessage;
+  final DateTime? broadcastSentAt;
 
   factory Queue.fromMap(Map<String, dynamic> map) {
     return Queue(
@@ -115,6 +119,8 @@ class Queue {
       statusNote: (map['statusNote'] as String?) ?? '',
       openedAt: (map['openedAt'] as Timestamp?)?.toDate(),
       closedAt: (map['closedAt'] as Timestamp?)?.toDate(),
+      broadcastMessage: (map['broadcastMessage'] as String?) ?? '',
+      broadcastSentAt: (map['broadcastSentAt'] as Timestamp?)?.toDate(),
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../queue/queue.dart';
 import '../queue/queue_repository.dart';
+import '../ratings/rate_doctor_dialog.dart';
 import '../ratings/rating.dart';
 import '../ratings/rating_repository.dart';
 
@@ -137,6 +138,12 @@ class _DoctorDetail extends ConsumerWidget {
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500),
             ),
+            const Spacer(),
+            TextButton.icon(
+              icon: const Icon(Icons.star_outline, size: 18),
+              label: const Text('Rate'),
+              onPressed: () => _showRate(context),
+            ),
           ],
         ),
         if (doctor.bio.isNotEmpty) ...[
@@ -185,6 +192,22 @@ class _DoctorDetail extends ConsumerWidget {
               Padding(padding: const EdgeInsets.only(bottom: 12), child: _ChamberTile(chamber: c, today: today))),
       ],
     );
+  }
+
+  Future<void> _showRate(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => RateDoctorDialog(
+        doctorId: doctor.id,
+        doctorName: doctor.name.isEmpty ? 'this doctor' : doctor.name,
+        bookingId: '',
+      ),
+    );
+    if (ok == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thanks for your rating!')),
+      );
+    }
   }
 }
 

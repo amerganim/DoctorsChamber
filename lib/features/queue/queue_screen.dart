@@ -44,6 +44,17 @@ class QueueScreen extends ConsumerWidget {
         actions: [
           if (queueAsync.value?.status == QueueStatus.open) ...[
             IconButton(
+              tooltip: 'Broadcast',
+              icon: const Icon(Icons.campaign_outlined),
+              onPressed: () => _showBroadcastDialog(
+                context,
+                ref,
+                chamberId,
+                date,
+                queueAsync.value?.broadcastMessage ?? '',
+              ),
+            ),
+            IconButton(
               tooltip: 'Reorder queue',
               icon: const Icon(Icons.swap_vert),
               onPressed: () =>
@@ -138,6 +149,119 @@ class QueueScreen extends ConsumerWidget {
               patientPhone: phone,
             ),
       ),
+    );
+  }
+
+  Future<void> _showBroadcastDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String chamberId,
+    String date,
+    String current,
+  ) {
+    return showDialog<void>(
+      context: context,
+      builder: (_) => _BroadcastDialog(
+        currentMessage: current,
+        onSubmit: (message) => ref.read(queueRepositoryProvider).sendBroadcast(
+              chamberId: chamberId,
+              date: date,
+              message: message,
+            ),
+      ),
+    );
+  }
+}
+
+class _BroadcastDialog extends StatefulWidget {
+  const _BroadcastDialog({
+    required this.currentMessage,
+    required this.onSubmit,
+  });
+
+  final String currentMessage;
+  final Future<void> Function(String) onSubmit;
+
+  @override
+  State<_BroadcastDialog> createState() => _BroadcastDialogState();
+}
+
+class _BroadcastDialogState extends State<_BroadcastDialog> {
+  late final _controller =
+      TextEditingController(text: widget.currentMessage);
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit({required bool clear}) async {
+    setState(() => _saving = true);
+    try {
+      await widget.onSubmit(clear ? '' : _controller.text.trim());
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasExisting = widget.currentMessage.isNotEmpty;
+    return AlertDialog(
+      title: const Text('Broadcast to patients'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Shown to everyone watching this chamber\'s queue today.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              enabled: !_saving,
+              maxLines: 3,
+              maxLength: 200,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText:
+                    'e.g. Doctor running 30 min late due to traffic',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        if (hasExisting)
+          TextButton(
+            onPressed: _saving ? null : () => _submit(clear: true),
+            child: const Text('Clear'),
+          ),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : () => _submit(clear: false),
+          child: _saving
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Send'),
+        ),
+      ],
     );
   }
 }
@@ -512,6 +636,14 @@ class _QueueBody extends ConsumerWidget {
               date: date,
               queue: queue,
             ),
+            if (queue.broadcastMessage.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _AdminBroadcastBanner(
+                message: queue.broadcastMessage,
+                chamberId: chamberId,
+                date: date,
+              ),
+            ],
             const SizedBox(height: 12),
             if (current.isNotEmpty) ...[
               _SectionHeader('In consultation'),
@@ -746,6 +878,95 @@ class _DoctorStatusDialogState extends State<_DoctorStatusDialog> {
         ),
       ],
     );
+  }
+}
+
+class _AdminBroadcastBanner extends ConsumerWidget {
+  const _AdminBroadcastBanner({
+    required this.message,
+    required this.chamberId,
+    required this.date,
+  });
+
+  final String message;
+  final String chamberId;
+  final String date;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.campaign,
+              color: Colors.amber.shade900, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'BROADCAST ACTIVE · patients see this',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.amber.shade900,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Clear broadcast',
+            icon: Icon(Icons.close,
+                color: Colors.amber.shade900, size: 18),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _confirmClear(context, ref),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Clear broadcast?'),
+        content: const Text(
+            'The message will be removed for all patients.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(queueRepositoryProvider).sendBroadcast(
+          chamberId: chamberId,
+          date: date,
+          message: '',
+        );
   }
 }
 

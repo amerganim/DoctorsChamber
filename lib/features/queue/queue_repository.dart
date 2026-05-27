@@ -150,6 +150,18 @@ class QueueRepository {
     }, SetOptions(merge: true));
   }
 
+  Future<void> sendBroadcast({
+    required String chamberId,
+    required String date,
+    required String message,
+  }) async {
+    await _queueDoc(chamberId, date).set({
+      'broadcastMessage': message,
+      'broadcastSentAt':
+          message.isEmpty ? null : FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> addEntry({
     required String chamberId,
     required String date,

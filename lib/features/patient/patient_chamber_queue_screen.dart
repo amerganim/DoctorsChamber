@@ -125,6 +125,10 @@ class _Body extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
         _StatusBanner(queue: queue!),
+        if (queue!.broadcastMessage.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _BroadcastBanner(message: queue!.broadcastMessage),
+        ],
         const SizedBox(height: 16),
         if (ownBooking != null) ...[
           _OwnBookingBanner(
@@ -586,6 +590,52 @@ class _Centered extends StatelessWidget {
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BroadcastBanner extends StatelessWidget {
+  const _BroadcastBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.campaign, color: Colors.amber.shade900),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'From the chamber',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.amber.shade900,
+                      letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: TextStyle(
+                      fontSize: 14, color: Colors.amber.shade900),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

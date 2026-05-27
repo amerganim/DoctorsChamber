@@ -247,8 +247,10 @@ class _DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final availableToday = chambers.any((c) => c.days.contains(today));
-    final firstChamber = chambers.isEmpty ? null : chambers.first;
+    final todayChambers =
+        chambers.where((c) => c.days.contains(today)).toList();
+    final otherChambers =
+        chambers.where((c) => !c.days.contains(today)).toList();
 
     return Material(
       color: scheme.surfaceContainerHighest,
@@ -297,7 +299,54 @@ class _DoctorCard extends StatelessWidget {
                             fontWeight: FontWeight.w500),
                       ),
                     ],
-                    if (firstChamber != null) ...[
+                    if (todayChambers.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TODAY',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.green.shade900,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            for (final c in todayChambers)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.circle,
+                                        size: 6,
+                                        color: Colors.green.shade700),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        '${c.name} · ${c.startTime}–${c.endTime}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.green.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ] else if (otherChambers.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -306,35 +355,17 @@ class _DoctorCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              chambers.length > 1
-                                  ? '${firstChamber.name} +${chambers.length - 1} more'
-                                  : firstChamber.name,
+                              otherChambers.length > 1
+                                  ? '${otherChambers.first.name} +${otherChambers.length - 1} more'
+                                  : otherChambers.first.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontSize: 12, color: scheme.onSurfaceVariant),
+                                  fontSize: 12,
+                                  color: scheme.onSurfaceVariant),
                             ),
                           ),
                         ],
-                      ),
-                    ],
-                    if (availableToday) ...[
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Available today',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.green.shade900,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                     ],
                   ],
