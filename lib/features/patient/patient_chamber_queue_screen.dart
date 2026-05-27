@@ -26,9 +26,22 @@ class PatientChamberQueueScreen extends ConsumerWidget {
     final queueAsync = ref.watch(queueStreamProvider(qKey));
     final entriesAsync = ref.watch(queueEntriesStreamProvider(qKey));
 
+    final today = todayDateKey();
+    final entries = entriesAsync.value ?? const <QueueEntry>[];
+    QueueEntry? ownActiveBooking;
+    for (final e in entries) {
+      if (e.bookedById == kDevPatientId &&
+          e.date == today &&
+          e.status.isActive) {
+        ownActiveBooking = e;
+        break;
+      }
+    }
+
     final canBook = chamber != null &&
         chamber.bookingMode != ChamberBookingMode.queueOnly &&
-        queueAsync.value?.status == QueueStatus.open;
+        queueAsync.value?.status == QueueStatus.open &&
+        ownActiveBooking == null;
 
     return Scaffold(
       appBar: AppBar(title: Text(chamber?.name ?? 'Chamber')),
@@ -43,6 +56,7 @@ class PatientChamberQueueScreen extends ConsumerWidget {
               chamber: chamber,
               queue: queue,
               entries: entries,
+              ownBooking: ownActiveBooking,
             ),
           ),
         ),
@@ -70,19 +84,21 @@ class PatientChamberQueueScreen extends ConsumerWidget {
   }
 }
 
-class _Body extends StatelessWidget {
+class _Body extends ConsumerWidget {
   const _Body({
     required this.chamber,
     required this.queue,
     required this.entries,
+    required this.ownBooking,
   });
 
   final Chamber? chamber;
   final Queue? queue;
   final List<QueueEntry> entries;
+  final QueueEntry? ownBooking;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
 
     if (queue == null || queue!.status == QueueStatus.pending) {
@@ -110,6 +126,14 @@ class _Body extends StatelessWidget {
       children: [
         _StatusBanner(queue: queue!),
         const SizedBox(height: 16),
+        if (ownBooking != null) ...[
+          _OwnBookingBanner(
+            booking: ownBooking!,
+            positionFromNow: _positionAmongUpcoming(),
+            onCancel: () => _confirmCancel(context, ref),
+          ),
+          const SizedBox(height: 16),
+        ],
         if (current.isNotEmpty) ...[
           _NowServingCard(serial: current.first.serial),
           const SizedBox(height: 20),
@@ -151,6 +175,7 @@ class _Body extends StatelessWidget {
                 child: _UpNextRow(
                   entry: pair.value,
                   positionFromNow: pair.key,
+                  isOwn: pair.value.id == ownBooking?.id,
                 ),
               )),
           const SizedBox(height: 16),
@@ -202,6 +227,57 @@ class _Body extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  int? _positionAmongUpcoming() {
+    if (ownBooking == null) return null;
+    final upcoming = entries
+        .where((e) =>
+            e.status == QueueEntryStatus.waiting ||
+            e.status == QueueEntryStatus.arrived)
+        .toList();
+    for (var i = 0; i < upcoming.length; i++) {
+      if (upcoming[i].id == ownBooking!.id) return i;
+    }
+    return null;
+  }
+
+  Future<void> _confirmCancel(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Cancel booking #${ownBooking!.serial}?'),
+        content: const Text('Your serial will be released. You can re-book if the queue still has space.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep booking'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Cancel booking'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(queueRepositoryProvider).updateStatus(
+            chamberId: ownBooking!.chamberId,
+            date: ownBooking!.date,
+            entryId: ownBooking!.id,
+            newStatus: QueueEntryStatus.cancelled,
+          );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Booking #${ownBooking!.serial} cancelled')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cancel failed: $e')),
+      );
+    }
   }
 }
 
@@ -307,11 +383,111 @@ class _NowServingCard extends StatelessWidget {
   }
 }
 
+class _OwnBookingBanner extends StatelessWidget {
+  const _OwnBookingBanner({
+    required this.booking,
+    required this.positionFromNow,
+    required this.onCancel,
+  });
+
+  final QueueEntry booking;
+  final int? positionFromNow;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final waitMin = positionFromNow == null
+        ? null
+        : (positionFromNow! + 1) * _avgConsultationMinutes;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.confirmation_number_outlined,
+                  color: scheme.onPrimary, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'Your booking',
+                style: TextStyle(
+                  color: scheme.onPrimary,
+                  fontSize: 13,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: onCancel,
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '#${booking.serial}',
+                style: TextStyle(
+                  color: scheme.onPrimary,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  booking.status.displayName,
+                  style: TextStyle(
+                    color: scheme.onPrimary.withValues(alpha: 0.9),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (waitMin != null && booking.status == QueueEntryStatus.waiting)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '~$waitMin min wait',
+                    style: TextStyle(
+                      color: scheme.onPrimary.withValues(alpha: 0.9),
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _UpNextRow extends StatelessWidget {
-  const _UpNextRow({required this.entry, required this.positionFromNow});
+  const _UpNextRow({
+    required this.entry,
+    required this.positionFromNow,
+    this.isOwn = false,
+  });
 
   final QueueEntry entry;
   final int positionFromNow;
+  final bool isOwn;
 
   String get _statusLabel => switch (entry.status) {
         QueueEntryStatus.arrived => 'Arrived',
@@ -335,9 +511,12 @@ class _UpNextRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: isOwn ? scheme.primaryContainer : scheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.outlineVariant),
+        border: Border.all(
+          color: isOwn ? scheme.primary : scheme.outlineVariant,
+          width: isOwn ? 1.5 : 1,
+        ),
       ),
       child: Row(
         children: [
