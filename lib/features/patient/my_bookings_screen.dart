@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/weekday.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
+import '../doctor/doctor_profile_repository.dart';
 import '../queue/queue.dart';
 import '../queue/queue_repository.dart';
+import '../ratings/rate_doctor_dialog.dart';
 
 class MyBookingsScreen extends ConsumerWidget {
   const MyBookingsScreen({super.key});
@@ -138,6 +140,30 @@ class _BookingCard extends ConsumerWidget {
     return '${yyyymmdd.substring(0, 4)}-${yyyymmdd.substring(4, 6)}-${yyyymmdd.substring(6, 8)}';
   }
 
+  Future<void> _showRateDialog(BuildContext context, WidgetRef ref) async {
+    if (chamber == null) return;
+    final doctor = await ref
+        .read(doctorProfileRepositoryProvider)
+        .fetch(chamber!.doctorId);
+    if (!context.mounted) return;
+    final doctorName = doctor?.name.isNotEmpty == true
+        ? doctor!.name
+        : 'this doctor';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => RateDoctorDialog(
+        doctorId: chamber!.doctorId,
+        doctorName: doctorName,
+        bookingId: booking.id,
+      ),
+    );
+    if (ok == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thanks for your rating!')),
+      );
+    }
+  }
+
   Future<void> _confirmCancel(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -266,6 +292,18 @@ class _BookingCard extends ConsumerWidget {
                     icon: const Icon(Icons.close, size: 18),
                     label: const Text('Cancel booking'),
                     onPressed: () => _confirmCancel(context, ref),
+                  ),
+                ),
+              ],
+              if (booking.status == QueueEntryStatus.done && chamber != null) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    icon:
+                        const Icon(Icons.star_outline, size: 18),
+                    label: const Text('Rate doctor'),
+                    onPressed: () => _showRateDialog(context, ref),
                   ),
                 ),
               ],

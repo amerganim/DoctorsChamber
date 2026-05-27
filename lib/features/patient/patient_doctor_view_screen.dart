@@ -10,6 +10,8 @@ import 'package:go_router/go_router.dart';
 
 import '../queue/queue.dart';
 import '../queue/queue_repository.dart';
+import '../ratings/rating.dart';
+import '../ratings/rating_repository.dart';
 
 class PatientDoctorViewScreen extends ConsumerWidget {
   const PatientDoctorViewScreen({super.key, required this.doctorId});
@@ -43,16 +45,20 @@ class PatientDoctorViewScreen extends ConsumerWidget {
   }
 }
 
-class _DoctorDetail extends StatelessWidget {
+class _DoctorDetail extends ConsumerWidget {
   const _DoctorDetail({required this.doctor, required this.chambers});
 
   final DoctorProfile doctor;
   final List<Chamber> chambers;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final today = todayWeekday();
+    final summary = ref.watch(ratingSummaryProvider(doctor.id));
+    final ratings =
+        ref.watch(ratingsByDoctorStreamProvider(doctor.id)).value ??
+            const <Rating>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -117,6 +123,22 @@ class _DoctorDetail extends StatelessWidget {
             ],
           ),
         ],
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(Icons.star, size: 16, color: Colors.amber.shade700),
+            const SizedBox(width: 6),
+            Text(
+              summary.count == 0
+                  ? 'No reviews yet'
+                  : '${summary.average.toStringAsFixed(1)} · ${summary.count} review${summary.count == 1 ? '' : 's'}',
+              style: TextStyle(
+                  fontSize: 13,
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
         if (doctor.bio.isNotEmpty) ...[
           const SizedBox(height: 24),
           const Text('About',
@@ -136,6 +158,18 @@ class _DoctorDetail extends StatelessWidget {
                 .map((l) => Chip(label: Text(l), visualDensity: VisualDensity.compact))
                 .toList(),
           ),
+        ],
+        if (ratings.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          const Text('Recent reviews',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          ...ratings.take(5).map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _RatingCard(rating: r),
+                ),
+              ),
         ],
         const SizedBox(height: 24),
         const Text('Chambers',
@@ -335,6 +369,45 @@ class _ChamberTile extends ConsumerWidget {
           ],
         ),
         ),
+      ),
+    );
+  }
+}
+
+class _RatingCard extends StatelessWidget {
+  const _RatingCard({required this.rating});
+
+  final Rating rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: List.generate(
+              5,
+              (i) => Icon(
+                i < rating.stars ? Icons.star : Icons.star_border,
+                size: 16,
+                color: i < rating.stars
+                    ? Colors.amber.shade700
+                    : scheme.outline,
+              ),
+            ),
+          ),
+          if (rating.text.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(rating.text, style: const TextStyle(height: 1.3)),
+          ],
+        ],
       ),
     );
   }
