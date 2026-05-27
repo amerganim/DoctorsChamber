@@ -44,6 +44,12 @@ class QueueScreen extends ConsumerWidget {
         actions: [
           if (queueAsync.value?.status == QueueStatus.open) ...[
             IconButton(
+              tooltip: 'Reorder queue',
+              icon: const Icon(Icons.swap_vert),
+              onPressed: () =>
+                  context.push('/admin/queue/$chamberId/reorder'),
+            ),
+            IconButton(
               tooltip: 'Scan register',
               icon: const Icon(Icons.document_scanner_outlined),
               onPressed: () =>

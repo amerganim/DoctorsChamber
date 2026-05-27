@@ -115,6 +115,29 @@ class QueueRepository {
     });
   }
 
+  Future<List<QueueEntry>> fetchEntriesOnce(
+      String chamberId, String date) async {
+    final snap =
+        await _entriesCol(chamberId, date).orderBy('serial').get();
+    return snap.docs
+        .map((d) => QueueEntry.fromMap(d.id, d.data()))
+        .toList();
+  }
+
+  Future<void> reassignSerials({
+    required String chamberId,
+    required String date,
+    required List<({String entryId, int newSerial})> assignments,
+  }) async {
+    final batch = _firestore.batch();
+    for (final a in assignments) {
+      batch.update(_entriesCol(chamberId, date).doc(a.entryId), {
+        'serial': a.newSerial,
+      });
+    }
+    await batch.commit();
+  }
+
   Future<void> setDoctorStatus({
     required String chamberId,
     required String date,
