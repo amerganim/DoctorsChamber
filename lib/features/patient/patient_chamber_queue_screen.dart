@@ -102,13 +102,7 @@ class _Body extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
 
     if (queue == null || queue!.status == QueueStatus.pending) {
-      return _Centered(
-        icon: Icons.schedule_outlined,
-        title: "Queue hasn't started yet",
-        subtitle: chamber == null
-            ? null
-            : "Open hours: ${chamber!.startTime} – ${chamber!.endTime}",
-      );
+      return _PendingChamberView(chamber: chamber);
     }
 
     final current = entries
@@ -560,12 +554,176 @@ class _UpNextRow extends StatelessWidget {
   }
 }
 
+class _PendingChamberView extends StatelessWidget {
+  const _PendingChamberView({required this.chamber});
+
+  final Chamber? chamber;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final today = todayWeekday();
+    final openToday = chamber?.days.contains(today) ?? false;
+    final openDaysLine = chamber == null
+        ? ''
+        : chamber!.days.join(', ');
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: openToday
+                ? scheme.primaryContainer
+                : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                openToday ? Icons.schedule : Icons.event_busy_outlined,
+                size: 56,
+                color: openToday
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                openToday
+                    ? "Queue hasn't started yet"
+                    : 'Chamber closed today',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: openToday
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                openToday
+                    ? 'The admin will open the queue when the chamber begins. Check back at the start time below.'
+                    : 'This chamber operates on different days. See the schedule below.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: openToday
+                      ? scheme.onPrimaryContainer.withValues(alpha: 0.85)
+                      : scheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (chamber != null) ...[
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  chamber!.name,
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w600),
+                ),
+                if (chamber!.address.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    chamber!.address,
+                    style: TextStyle(
+                        fontSize: 13, color: scheme.onSurfaceVariant),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                _InfoRow(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Open days',
+                  value: openDaysLine,
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(
+                  icon: Icons.access_time,
+                  label: 'Hours',
+                  value:
+                      '${chamber!.startTime} – ${chamber!.endTime}',
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(
+                  icon: Icons.payments_outlined,
+                  label: 'Consultation fee',
+                  value: '৳${chamber!.consultationFee}',
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(
+                  icon: Icons.bookmark_outline,
+                  label: 'Booking',
+                  value: chamber!.bookingMode.displayName,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _Centered extends StatelessWidget {
-  const _Centered({required this.icon, required this.title, this.subtitle});
+  const _Centered({required this.icon, required this.title});
 
   final IconData icon;
   final String title;
-  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -582,14 +740,6 @@ class _Centered extends StatelessWidget {
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              subtitle!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant),
-            ),
-          ],
         ],
       ),
     );
