@@ -135,6 +135,8 @@ class _DoctorDetail extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 8),
+        _VerificationLine(status: doctor.verificationStatus),
+        const SizedBox(height: 8),
         Row(
           children: [
             Icon(Icons.star, size: 16, color: Colors.amber.shade700),
@@ -403,6 +405,33 @@ class _ChamberTile extends ConsumerWidget {
         ),
         ),
       ),
+    );
+  }
+}
+
+class _VerificationLine extends StatelessWidget {
+  const _VerificationLine({required this.status});
+
+  final DoctorVerificationStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = switch (status) {
+      DoctorVerificationStatus.verified => Colors.green.shade700,
+      DoctorVerificationStatus.pending => Colors.amber.shade800,
+      DoctorVerificationStatus.rejected => scheme.error,
+    };
+    return Row(
+      children: [
+        Icon(status.icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(
+          status.displayName,
+          style: TextStyle(
+              fontSize: 13, color: color, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 }

@@ -27,6 +27,8 @@ class _DoctorProfileEditorScreenState
   final Set<String> _selectedLanguages = {};
   bool _saving = false;
   bool _loaded = false;
+  DoctorVerificationStatus _verificationStatus =
+      DoctorVerificationStatus.pending;
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _DoctorProfileEditorScreenState
       _yearsController.text = profile.yearsOfExperience.toString();
       _selectedSpecialties.addAll(profile.specialties);
       _selectedLanguages.addAll(profile.languages);
+      _verificationStatus = profile.verificationStatus;
     }
     setState(() => _loaded = true);
   }
@@ -78,6 +81,7 @@ class _DoctorProfileEditorScreenState
       bio: _bioController.text.trim(),
       languages: _selectedLanguages.toList(),
       yearsOfExperience: int.tryParse(_yearsController.text.trim()) ?? 0,
+      verificationStatus: _verificationStatus,
     );
     try {
       await ref.read(doctorProfileRepositoryProvider).save(profile);

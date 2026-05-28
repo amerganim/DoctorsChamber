@@ -42,6 +42,16 @@ class DoctorProfileRepository {
         .doc(profile.id)
         .set(profile.toMap(), SetOptions(merge: true));
   }
+
+  Future<void> setVerificationStatus({
+    required String doctorId,
+    required DoctorVerificationStatus status,
+  }) async {
+    await _doctors.doc(doctorId).set(
+      {'verificationStatus': status.name},
+      SetOptions(merge: true),
+    );
+  }
 }
 
 final doctorProfileRepositoryProvider = Provider<DoctorProfileRepository>((ref) {

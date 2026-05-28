@@ -281,10 +281,24 @@ class _DoctorCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      doctor.name,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            doctor.name,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (doctor.verificationStatus ==
+                            DoctorVerificationStatus.verified) ...[
+                          const SizedBox(width: 6),
+                          Icon(Icons.verified,
+                              size: 16, color: Colors.blue.shade700),
+                        ],
+                      ],
                     ),
                     if (doctor.qualifications.isNotEmpty) ...[
                       const SizedBox(height: 2),

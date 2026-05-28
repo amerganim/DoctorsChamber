@@ -1,3 +1,30 @@
+import 'package:flutter/material.dart';
+
+enum DoctorVerificationStatus {
+  pending,
+  verified,
+  rejected;
+
+  String get displayName => switch (this) {
+        DoctorVerificationStatus.pending => 'Verification pending',
+        DoctorVerificationStatus.verified => 'Verified by BMDC',
+        DoctorVerificationStatus.rejected => 'Verification rejected',
+      };
+
+  IconData get icon => switch (this) {
+        DoctorVerificationStatus.pending => Icons.hourglass_top_outlined,
+        DoctorVerificationStatus.verified => Icons.verified,
+        DoctorVerificationStatus.rejected => Icons.gpp_bad_outlined,
+      };
+
+  static DoctorVerificationStatus fromString(String? s) {
+    return DoctorVerificationStatus.values.firstWhere(
+      (e) => e.name == s,
+      orElse: () => DoctorVerificationStatus.pending,
+    );
+  }
+}
+
 class DoctorProfile {
   const DoctorProfile({
     required this.id,
@@ -9,6 +36,7 @@ class DoctorProfile {
     required this.languages,
     required this.yearsOfExperience,
     this.photoUrl,
+    this.verificationStatus = DoctorVerificationStatus.pending,
   });
 
   final String id;
@@ -20,6 +48,7 @@ class DoctorProfile {
   final List<String> languages;
   final int yearsOfExperience;
   final String? photoUrl;
+  final DoctorVerificationStatus verificationStatus;
 
   Map<String, dynamic> toMap() => {
         'name': name,
@@ -30,6 +59,7 @@ class DoctorProfile {
         'languages': languages,
         'yearsOfExperience': yearsOfExperience,
         'photoUrl': photoUrl,
+        'verificationStatus': verificationStatus.name,
       };
 
   factory DoctorProfile.fromMap(String id, Map<String, dynamic> map) {
@@ -43,6 +73,8 @@ class DoctorProfile {
       languages: List<String>.from((map['languages'] as List?) ?? const []),
       yearsOfExperience: (map['yearsOfExperience'] as num?)?.toInt() ?? 0,
       photoUrl: map['photoUrl'] as String?,
+      verificationStatus: DoctorVerificationStatus.fromString(
+          map['verificationStatus'] as String?),
     );
   }
 }
