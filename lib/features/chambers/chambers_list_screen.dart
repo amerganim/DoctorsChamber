@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../shared/widgets/error_state.dart';
 import '../doctor/doctor_profile_repository.dart';
 import 'chamber.dart';
 import 'chamber_repository.dart';
@@ -19,12 +20,10 @@ class ChambersListScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('My Chambers')),
       body: asyncChambers.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text('Failed to load chambers:\n$e',
-                textAlign: TextAlign.center),
-          ),
+        error: (e, _) => ErrorState(
+          detail: ErrorState.friendly(e),
+          onRetry: () => ref
+              .invalidate(chambersByDoctorStreamProvider(kDevDoctorId)),
         ),
         data: (chambers) {
           if (chambers.isEmpty) {

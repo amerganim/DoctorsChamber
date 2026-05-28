@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/widgets/error_state.dart';
 import '../doctor/doctor_profile.dart';
 import '../doctor/doctor_profile_repository.dart';
 
@@ -28,11 +29,9 @@ class _VerificationQueueScreenState
       appBar: AppBar(title: const Text('Verification queue')),
       body: doctorsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text('Failed: $e', textAlign: TextAlign.center),
-          ),
+        error: (e, _) => ErrorState(
+          detail: ErrorState.friendly(e),
+          onRetry: () => ref.invalidate(allDoctorsStreamProvider),
         ),
         data: (doctors) {
           final filtered = doctors.where((d) {

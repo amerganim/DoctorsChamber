@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../../shared/widgets/error_state.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../doctor/doctor_day_status.dart';
@@ -94,12 +95,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             Expanded(
               child: doctorsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text('Failed to load: $e',
-                        textAlign: TextAlign.center),
-                  ),
+                error: (e, _) => ErrorState(
+                  detail: ErrorState.friendly(e),
+                  onRetry: () => ref.invalidate(allDoctorsStreamProvider),
                 ),
                 data: (allDoctors) {
                   final chambers = chambersAsync.value ?? const <Chamber>[];
