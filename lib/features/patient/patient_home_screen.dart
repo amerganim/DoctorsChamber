@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/weekday.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
+import '../doctor/doctor_day_status.dart';
+import '../doctor/doctor_day_status_repository.dart';
 import '../doctor/doctor_profile.dart';
 import '../doctor/doctor_profile_repository.dart';
 
@@ -233,7 +235,7 @@ class _FilterRow extends StatelessWidget {
   }
 }
 
-class _DoctorCard extends StatelessWidget {
+class _DoctorCard extends ConsumerWidget {
   const _DoctorCard({
     required this.doctor,
     required this.chambers,
@@ -245,12 +247,17 @@ class _DoctorCard extends StatelessWidget {
   final String today;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final todayChambers =
         chambers.where((c) => c.days.contains(today)).toList();
     final otherChambers =
         chambers.where((c) => !c.days.contains(today)).toList();
+    final dayStatus = ref
+        .watch(doctorDayStatusProvider(
+            DoctorDayStatusKey(doctor.id, todayDateKey())))
+        .value;
+    final hasOverride = dayStatus != null && !dayStatus.isAvailable;
 
     return Material(
       color: scheme.surfaceContainerHighest,
@@ -299,7 +306,10 @@ class _DoctorCard extends StatelessWidget {
                             fontWeight: FontWeight.w500),
                       ),
                     ],
-                    if (todayChambers.isNotEmpty) ...[
+                    if (hasOverride) ...[
+                      const SizedBox(height: 10),
+                      _DayStatusBadge(status: dayStatus),
+                    ] else if (todayChambers.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -374,6 +384,62 @@ class _DoctorCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DayStatusBadge extends StatelessWidget {
+  const _DayStatusBadge({required this.status});
+
+  final DoctorDayStatusDoc status;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (bg, fg) = switch (status.status) {
+      DoctorDayStatus.available =>
+        (Colors.green.shade50, Colors.green.shade900),
+      DoctorDayStatus.onLeave =>
+        (scheme.errorContainer, scheme.onErrorContainer),
+      DoctorDayStatus.atHospital =>
+        (Colors.amber.shade50, Colors.amber.shade900),
+    };
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(status.status.icon, size: 16, color: fg),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  status.status.displayName.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                if (status.note.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    status.note,
+                    style: TextStyle(fontSize: 12, color: fg),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

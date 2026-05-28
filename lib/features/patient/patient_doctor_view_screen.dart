@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/weekday.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
+import '../doctor/doctor_day_status.dart';
+import '../doctor/doctor_day_status_repository.dart';
 import '../doctor/doctor_profile.dart';
 import '../doctor/doctor_profile_repository.dart';
 import 'package:go_router/go_router.dart';
@@ -60,10 +62,18 @@ class _DoctorDetail extends ConsumerWidget {
     final ratings =
         ref.watch(ratingsByDoctorStreamProvider(doctor.id)).value ??
             const <Rating>[];
+    final dayStatus = ref
+        .watch(doctorDayStatusProvider(
+            DoctorDayStatusKey(doctor.id, todayDateKey())))
+        .value;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       children: [
+        if (dayStatus != null && !dayStatus.isAvailable) ...[
+          _DoctorDayStatusBanner(status: dayStatus),
+          const SizedBox(height: 16),
+        ],
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -392,6 +402,57 @@ class _ChamberTile extends ConsumerWidget {
           ],
         ),
         ),
+      ),
+    );
+  }
+}
+
+class _DoctorDayStatusBanner extends StatelessWidget {
+  const _DoctorDayStatusBanner({required this.status});
+
+  final DoctorDayStatusDoc status;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (bg, fg) = switch (status.status) {
+      DoctorDayStatus.available =>
+        (Colors.green.shade50, Colors.green.shade900),
+      DoctorDayStatus.onLeave =>
+        (scheme.errorContainer, scheme.onErrorContainer),
+      DoctorDayStatus.atHospital =>
+        (Colors.amber.shade50, Colors.amber.shade900),
+    };
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(status.status.icon, color: fg),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  status.status.displayName,
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: fg),
+                ),
+                if (status.note.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(status.note,
+                      style: TextStyle(fontSize: 13, color: fg)),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

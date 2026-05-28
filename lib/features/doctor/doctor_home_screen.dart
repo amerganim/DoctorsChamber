@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/weekday.dart';
 import '../chambers/chamber_repository.dart';
+import 'doctor_day_status.dart';
+import 'doctor_day_status_dialog.dart';
+import 'doctor_day_status_repository.dart';
 import 'doctor_profile_repository.dart';
 
 class DoctorHomeScreen extends ConsumerWidget {
@@ -78,7 +82,9 @@ class DoctorHomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+                const _TodayStatusSection(),
+                const SizedBox(height: 20),
                 FilledButton.icon(
                   icon: const Icon(Icons.edit),
                   label: Text(hasProfile ? 'Edit profile' : 'Create profile'),
@@ -101,6 +107,91 @@ class DoctorHomeScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _TodayStatusSection extends ConsumerWidget {
+  const _TodayStatusSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final date = todayDateKey();
+    final statusAsync = ref.watch(
+      doctorDayStatusProvider(DoctorDayStatusKey(kDevDoctorId, date)),
+    );
+    final scheme = Theme.of(context).colorScheme;
+    final doc = statusAsync.value;
+    if (doc == null) {
+      return Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+      );
+    }
+
+    final (bg, fg) = switch (doc.status) {
+      DoctorDayStatus.available => (
+          Colors.green.shade50,
+          Colors.green.shade900
+        ),
+      DoctorDayStatus.onLeave => (
+          scheme.errorContainer,
+          scheme.onErrorContainer,
+        ),
+      DoctorDayStatus.atHospital => (
+          Colors.amber.shade50,
+          Colors.amber.shade900,
+        ),
+    };
+
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (_) => DoctorDayStatusDialog(
+            doctorId: kDevDoctorId,
+            date: date,
+            current: doc,
+          ),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(doc.status.icon, color: fg),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Today: ${doc.status.displayName}',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: fg),
+                    ),
+                    if (doc.note.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        doc.note,
+                        style: TextStyle(fontSize: 12, color: fg),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.edit, size: 16, color: fg.withValues(alpha: 0.7)),
+            ],
+          ),
+        ),
       ),
     );
   }
