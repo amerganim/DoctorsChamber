@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../queue/queue_repository.dart';
+import '../auth/current_user.dart';
 import 'rating_repository.dart';
 
 class RateDoctorDialog extends ConsumerStatefulWidget {
@@ -37,7 +37,7 @@ class _RateDoctorDialogState extends ConsumerState<RateDoctorDialog> {
     try {
       await ref.read(ratingRepositoryProvider).add(
             doctorId: widget.doctorId,
-            patientId: kDevPatientId,
+            patientId: currentPatientId(),
             bookingId: widget.bookingId,
             stars: _stars,
             text: _textController.text.trim(),

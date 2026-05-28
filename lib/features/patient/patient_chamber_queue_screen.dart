@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/weekday.dart';
+import '../auth/current_user.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../queue/queue.dart';
@@ -30,7 +31,7 @@ class PatientChamberQueueScreen extends ConsumerWidget {
     final entries = entriesAsync.value ?? const <QueueEntry>[];
     QueueEntry? ownActiveBooking;
     for (final e in entries) {
-      if (e.bookedById == kDevPatientId &&
+      if (e.bookedById == currentPatientId() &&
           e.date == today &&
           e.status.isActive) {
         ownActiveBooking = e;

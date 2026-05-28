@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/weekday.dart';
+import '../auth/current_user.dart';
 import '../chambers/chamber.dart';
 import '../queue/queue_repository.dart';
 
@@ -41,7 +42,7 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
     final result = await repo.bookForPatient(
       chamber: widget.chamber,
       date: todayDateKey(),
-      patientId: kDevPatientId,
+      patientId: currentPatientId(),
       patientName: _nameController.text.trim(),
       patientPhone: _phoneController.text.trim(),
       age: int.tryParse(_ageController.text.trim()),

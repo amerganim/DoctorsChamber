@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
 import '../../shared/widgets/error_state.dart';
+import '../auth/current_user.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../doctor/doctor_profile_repository.dart';
@@ -17,7 +18,7 @@ class MyBookingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingsAsync =
-        ref.watch(patientBookingsStreamProvider(kDevPatientId));
+        ref.watch(patientBookingsStreamProvider(currentPatientId()));
     final chambersAsync = ref.watch(allChambersStreamProvider);
     final scheme = Theme.of(context).colorScheme;
     final today = todayDateKey();
@@ -29,7 +30,7 @@ class MyBookingsScreen extends ConsumerWidget {
         error: (e, _) => ErrorState(
           detail: ErrorState.friendly(e),
           onRetry: () =>
-              ref.invalidate(patientBookingsStreamProvider(kDevPatientId)),
+              ref.invalidate(patientBookingsStreamProvider(currentPatientId())),
         ),
         data: (bookings) {
           if (bookings.isEmpty) {
