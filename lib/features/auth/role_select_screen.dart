@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../shared/widgets/loading_overlay.dart';
 import '../../shared/widgets/role_card.dart';
 import '../platform/platform_lock.dart';
 import 'current_user.dart';
@@ -21,8 +22,6 @@ class RoleSelectScreen extends ConsumerStatefulWidget {
 }
 
 class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
-  bool _signingIn = false;
-
   Future<void> _pickRole(BuildContext context, UserRole role) async {
     if (role == UserRole.doctor || role == UserRole.admin) {
       await _signInWithGoogle(context, role);
@@ -40,7 +39,7 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
       context.push(role.homeRoute);
       return;
     }
-    setState(() => _signingIn = true);
+    LoadingOverlay.show(context, 'Signing you in…');
     try {
       await GoogleSignIn.instance.initialize(
         serverClientId:
@@ -67,20 +66,22 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
       }
       ref.invalidate(userRoleEnrollmentProvider);
       if (!context.mounted) return;
+      LoadingOverlay.dismiss(context);
+      if (!context.mounted) return;
       context.push(role.homeRoute);
     } on GoogleSignInException catch (e) {
+      LoadingOverlay.dismiss(context);
       if (e.code != GoogleSignInExceptionCode.canceled && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Google sign-in failed: ${e.code.name}')),
         );
       }
     } catch (e) {
+      LoadingOverlay.dismiss(context);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sign-in failed: $e')),
       );
-    } finally {
-      if (mounted) setState(() => _signingIn = false);
     }
   }
 
@@ -99,6 +100,7 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
             UserRoleEnrollment.neither;
     final showDoctor = enrollment != UserRoleEnrollment.admin;
     final showAdmin = enrollment != UserRoleEnrollment.doctor;
+    final signedIn = isDoctorSignedIn();
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -137,24 +139,22 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
               if (showDoctor) ...[
                 RoleCard(
                   icon: Icons.medical_services_outlined,
-                  title: _signingIn ? 'Signing in…' : 'Doctor',
-                  subtitle:
-                      'Sign in with Google · manage chambers and queue',
-                  onTap: _signingIn
-                      ? () {}
-                      : () => _pickRole(context, UserRole.doctor),
+                  title: 'Doctor',
+                  subtitle: signedIn
+                      ? 'Manage chambers and queue'
+                      : 'Sign in with Google · manage chambers and queue',
+                  onTap: () => _pickRole(context, UserRole.doctor),
                 ),
                 const SizedBox(height: 12),
               ],
               if (showAdmin) ...[
                 RoleCard(
                   icon: Icons.assignment_outlined,
-                  title: _signingIn ? 'Signing in…' : 'Chamber Admin',
-                  subtitle:
-                      'Sign in with Google · run the daily queue for a doctor',
-                  onTap: _signingIn
-                      ? () {}
-                      : () => _pickRole(context, UserRole.admin),
+                  title: 'Chamber Admin',
+                  subtitle: signedIn
+                      ? 'Run the daily queue for a doctor'
+                      : 'Sign in with Google · run the daily queue for a doctor',
+                  onTap: () => _pickRole(context, UserRole.admin),
                 ),
                 const SizedBox(height: 12),
               ],
