@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../shared/widgets/loading_overlay.dart';
 import '../../shared/widgets/role_card.dart';
 import '../platform/platform_lock.dart';
+import '../platform/platform_owner.dart';
 import 'current_user.dart';
 import 'user_role.dart';
 import 'user_role_enrollment.dart';
@@ -102,6 +103,7 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
     final showAdmin = enrollment != UserRoleEnrollment.doctor;
     final signedIn = isDoctorSignedIn();
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -159,14 +161,15 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
                 const SizedBox(height: 12),
               ],
               const Spacer(),
-              Align(
-                alignment: Alignment.center,
-                child: TextButton.icon(
-                  icon: const Icon(Icons.verified_user_outlined, size: 16),
-                  label: const Text('Platform admin · Verification queue'),
-                  onPressed: () => _openPlatformAdmin(context, ref),
+              if (isPlatformOwner())
+                Align(
+                  alignment: Alignment.center,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.verified_user_outlined, size: 16),
+                    label: const Text('Platform admin · Verification queue'),
+                    onPressed: () => _openPlatformAdmin(context, ref),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
