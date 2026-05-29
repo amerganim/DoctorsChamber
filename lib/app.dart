@@ -11,6 +11,8 @@ class DoctorsChamberApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'DoctorsChamber',
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );
