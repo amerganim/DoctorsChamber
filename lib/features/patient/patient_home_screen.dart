@@ -8,6 +8,7 @@ import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../doctor/doctor_day_status.dart';
 import '../doctor/doctor_day_status_repository.dart';
+import '../doctor/doctor_photo_service.dart';
 import '../doctor/doctor_profile.dart';
 import '../doctor/doctor_profile_repository.dart';
 
@@ -270,9 +271,17 @@ class _DoctorCard extends ConsumerWidget {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: scheme.primaryContainer,
-                child: Icon(Icons.person,
-                    size: 28, color: scheme.onPrimaryContainer),
+                backgroundColor: scheme.brightness == Brightness.light
+                    ? scheme.primary
+                    : scheme.primaryContainer,
+                backgroundImage: doctorPhotoProvider(doctor.photoUrl),
+                child: doctorPhotoProvider(doctor.photoUrl) == null
+                    ? Icon(Icons.person,
+                        size: 28,
+                        color: scheme.brightness == Brightness.light
+                            ? scheme.onPrimary
+                            : scheme.onPrimaryContainer)
+                    : null,
               ),
               const SizedBox(width: 14),
               Expanded(

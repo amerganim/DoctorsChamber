@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../auth/current_user.dart';
+import 'doctor_photo_service.dart';
 import 'doctor_profile.dart';
 import 'doctor_profile_repository.dart';
 import 'specialties.dart';
@@ -28,6 +30,8 @@ class _DoctorProfileEditorScreenState
   final Set<String> _selectedLanguages = {};
   bool _saving = false;
   bool _loaded = false;
+  bool _uploadingPhoto = false;
+  String? _photoUrl;
   DoctorVerificationStatus _verificationStatus =
       DoctorVerificationStatus.pending;
 
@@ -50,8 +54,83 @@ class _DoctorProfileEditorScreenState
       _selectedSpecialties.addAll(profile.specialties);
       _selectedLanguages.addAll(profile.languages);
       _verificationStatus = profile.verificationStatus;
+      _photoUrl = profile.photoUrl;
     }
     setState(() => _loaded = true);
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    setState(() => _uploadingPhoto = true);
+    try {
+      final dataUrl =
+          await ref.read(doctorPhotoServiceProvider).pickAsDataUrl(source);
+      if (!mounted) return;
+      if (dataUrl == null) {
+        setState(() => _uploadingPhoto = false);
+        return;
+      }
+      setState(() {
+        _photoUrl = dataUrl;
+        _uploadingPhoto = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo updated — save to keep it')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _uploadingPhoto = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not load image: $e')),
+      );
+    }
+  }
+
+  void _removePhoto() {
+    setState(() => _photoUrl = null);
+  }
+
+  Future<void> _showPhotoSheet() async {
+    final source = await showModalBottomSheet<_PhotoAction>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(_PhotoAction.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(_PhotoAction.gallery),
+            ),
+            if (_photoUrl != null)
+              ListTile(
+                leading: Icon(Icons.delete_outline,
+                    color: Theme.of(sheetContext).colorScheme.error),
+                title: Text('Remove photo',
+                    style: TextStyle(
+                        color: Theme.of(sheetContext).colorScheme.error)),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_PhotoAction.remove),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    switch (source) {
+      case _PhotoAction.camera:
+        await _pickPhoto(ImageSource.camera);
+      case _PhotoAction.gallery:
+        await _pickPhoto(ImageSource.gallery);
+      case _PhotoAction.remove:
+        _removePhoto();
+    }
   }
 
   @override
@@ -82,6 +161,7 @@ class _DoctorProfileEditorScreenState
       bio: _bioController.text.trim(),
       languages: _selectedLanguages.toList(),
       yearsOfExperience: int.tryParse(_yearsController.text.trim()) ?? 0,
+      photoUrl: _photoUrl,
       verificationStatus: _verificationStatus,
     );
     try {
@@ -125,8 +205,13 @@ class _DoctorProfileEditorScreenState
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: scheme.surfaceContainerHighest,
-                      child: Icon(Icons.person,
-                          size: 50, color: scheme.onSurfaceVariant),
+                      backgroundImage: doctorPhotoProvider(_photoUrl),
+                      child: _uploadingPhoto
+                          ? const CircularProgressIndicator(strokeWidth: 2)
+                          : (_photoUrl == null
+                              ? Icon(Icons.person,
+                                  size: 50, color: scheme.onSurfaceVariant)
+                              : null),
                     ),
                     Material(
                       color: scheme.primary,
@@ -134,8 +219,8 @@ class _DoctorProfileEditorScreenState
                       child: IconButton(
                         icon: Icon(Icons.camera_alt,
                             color: scheme.onPrimary, size: 18),
-                        onPressed: null,
-                        tooltip: 'Photo upload coming soon',
+                        onPressed: _uploadingPhoto ? null : _showPhotoSheet,
+                        tooltip: 'Update photo',
                       ),
                     ),
                   ],
@@ -257,3 +342,5 @@ class _DoctorProfileEditorScreenState
     );
   }
 }
+
+enum _PhotoAction { camera, gallery, remove }
