@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../auth/current_user.dart';
 import 'doctor_profile.dart';
 import 'doctor_profile_repository.dart';
 import 'specialties.dart';
@@ -38,7 +39,7 @@ class _DoctorProfileEditorScreenState
 
   Future<void> _loadProfile() async {
     final repo = ref.read(doctorProfileRepositoryProvider);
-    final profile = await repo.fetch(kDevDoctorId);
+    final profile = await repo.fetch(currentDoctorId());
     if (!mounted) return;
     if (profile != null) {
       _nameController.text = profile.name;
@@ -73,7 +74,7 @@ class _DoctorProfileEditorScreenState
     }
     setState(() => _saving = true);
     final profile = DoctorProfile(
-      id: kDevDoctorId,
+      id: currentDoctorId(),
       name: _nameController.text.trim(),
       bmdcNumber: _bmdcController.text.trim(),
       qualifications: _qualificationsController.text.trim(),

@@ -59,4 +59,5 @@ class DefaultFirebaseOptions {
     projectId: 'doctorschamber-d4aa3',
     storageBucket: 'doctorschamber-d4aa3.firebasestorage.app',
   );
+
 }

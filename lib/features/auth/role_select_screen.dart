@@ -1,22 +1,84 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../shared/widgets/role_card.dart';
 import '../platform/platform_lock.dart';
+import 'current_user.dart';
 import 'user_role.dart';
 
 // Set to false once Firebase is on the Blaze plan and real phone auth works.
 const _devSkipLogin = true;
 
-class RoleSelectScreen extends ConsumerWidget {
+class RoleSelectScreen extends ConsumerStatefulWidget {
   const RoleSelectScreen({super.key});
 
-  void _pickRole(BuildContext context, UserRole role) {
+  @override
+  ConsumerState<RoleSelectScreen> createState() => _RoleSelectScreenState();
+}
+
+class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
+  bool _signingIn = false;
+
+  Future<void> _pickRole(BuildContext context, UserRole role) async {
+    if (role == UserRole.doctor) {
+      await _signInAsDoctor(context);
+      return;
+    }
     if (_devSkipLogin) {
       context.push(role.homeRoute);
     } else {
       context.push('/login', extra: role);
+    }
+  }
+
+  Future<void> _signInAsDoctor(BuildContext context) async {
+    if (isDoctorSignedIn()) {
+      context.push(UserRole.doctor.homeRoute);
+      return;
+    }
+    setState(() => _signingIn = true);
+    try {
+      await GoogleSignIn.instance.initialize(
+        serverClientId:
+            '789245868214-36quh56t7i68mgul6rb7h5k4ngqkupqj.apps.googleusercontent.com',
+      );
+      final account = await GoogleSignIn.instance.authenticate();
+      final auth = account.authentication;
+      final credential =
+          GoogleAuthProvider.credential(idToken: auth.idToken);
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null && firebaseUser.isAnonymous) {
+        try {
+          await firebaseUser.linkWithCredential(credential);
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'credential-already-in-use' ||
+              e.code == 'email-already-in-use') {
+            await FirebaseAuth.instance.signInWithCredential(credential);
+          } else {
+            rethrow;
+          }
+        }
+      } else {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+      if (!context.mounted) return;
+      context.push(UserRole.doctor.homeRoute);
+    } on GoogleSignInException catch (e) {
+      if (e.code != GoogleSignInExceptionCode.canceled && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google sign-in failed: ${e.code.name}')),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign-in failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
     }
   }
 
@@ -28,7 +90,8 @@ class RoleSelectScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -66,9 +129,12 @@ class RoleSelectScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               RoleCard(
                 icon: Icons.medical_services_outlined,
-                title: 'Doctor',
-                subtitle: 'Manage your chambers, see today\'s queue',
-                onTap: () => _pickRole(context, UserRole.doctor),
+                title: _signingIn ? 'Signing in…' : 'Doctor',
+                subtitle:
+                    'Sign in with Google · manage chambers and queue',
+                onTap: _signingIn
+                    ? () {}
+                    : () => _pickRole(context, UserRole.doctor),
               ),
               const SizedBox(height: 12),
               RoleCard(

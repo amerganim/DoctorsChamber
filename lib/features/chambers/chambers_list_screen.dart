@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets/error_state.dart';
-import '../doctor/doctor_profile_repository.dart';
+import '../auth/current_user.dart';
 import 'chamber.dart';
 import 'chamber_repository.dart';
 
@@ -13,7 +13,7 @@ class ChambersListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncChambers =
-        ref.watch(chambersByDoctorStreamProvider(kDevDoctorId));
+        ref.watch(chambersByDoctorStreamProvider(currentDoctorId()));
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -23,7 +23,7 @@ class ChambersListScreen extends ConsumerWidget {
         error: (e, _) => ErrorState(
           detail: ErrorState.friendly(e),
           onRetry: () => ref
-              .invalidate(chambersByDoctorStreamProvider(kDevDoctorId)),
+              .invalidate(chambersByDoctorStreamProvider(currentDoctorId())),
         ),
         data: (chambers) {
           if (chambers.isEmpty) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../doctor/doctor_profile_repository.dart';
+import '../auth/current_user.dart';
 import 'chamber.dart';
 import 'chamber_repository.dart';
 
@@ -61,7 +61,7 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
     setState(() => _saving = true);
     final chamber = Chamber(
       id: '',
-      doctorId: kDevDoctorId,
+      doctorId: currentDoctorId(),
       name: _nameController.text.trim(),
       address: _addressController.text.trim(),
       days: kWeekdays.where(_selectedDays.contains).toList(),

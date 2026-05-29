@@ -12,7 +12,20 @@
           "package_name": "com.doctorschamber.doctors_chamber"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "789245868214-5bp919l837g2qse3suhl50at1hajaunl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.doctorschamber.doctors_chamber",
+            "certificate_hash": "393895c3e0adf1bc4984d0403aa2ad79f3e1541b"
+          }
+        },
+        {
+          "client_id": "789245868214-36quh56t7i68mgul6rb7h5k4ngqkupqj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBnqUZaLxhET32LaY-KbquJqzex4P8ORSI"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "789245868214-36quh56t7i68mgul6rb7h5k4ngqkupqj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

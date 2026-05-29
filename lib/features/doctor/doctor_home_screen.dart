@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../auth/current_user.dart';
 import '../chambers/chamber_repository.dart';
 import 'doctor_day_status.dart';
 import 'doctor_day_status_dialog.dart';
@@ -15,7 +16,7 @@ class DoctorHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync =
-        ref.watch(doctorProfileStreamProvider(kDevDoctorId));
+        ref.watch(doctorProfileStreamProvider(currentDoctorId()));
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -119,7 +120,7 @@ class _TodayStatusSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final date = todayDateKey();
     final statusAsync = ref.watch(
-      doctorDayStatusProvider(DoctorDayStatusKey(kDevDoctorId, date)),
+      doctorDayStatusProvider(DoctorDayStatusKey(currentDoctorId(), date)),
     );
     final scheme = Theme.of(context).colorScheme;
     final doc = statusAsync.value;
@@ -155,7 +156,7 @@ class _TodayStatusSection extends ConsumerWidget {
         onTap: () => showDialog<void>(
           context: context,
           builder: (_) => DoctorDayStatusDialog(
-            doctorId: kDevDoctorId,
+            doctorId: currentDoctorId(),
             date: date,
             current: doc,
           ),
@@ -203,7 +204,7 @@ class _ManageQueueSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chambersAsync =
-        ref.watch(chambersByDoctorStreamProvider(kDevDoctorId));
+        ref.watch(chambersByDoctorStreamProvider(currentDoctorId()));
     final scheme = Theme.of(context).colorScheme;
 
     final chambers = chambersAsync.value;
