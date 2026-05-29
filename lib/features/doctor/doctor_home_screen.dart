@@ -6,8 +6,11 @@ import '../../core/weekday.dart';
 import '../../shared/widgets/loading_overlay.dart';
 import '../auth/current_user.dart';
 import '../auth/user_role_enrollment.dart';
+import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
+import '../queue/queue.dart';
 import '../queue/queue_janitor.dart';
+import '../queue/queue_repository.dart';
 import 'doctor_day_status.dart';
 import 'doctor_day_status_dialog.dart';
 import 'doctor_day_status_repository.dart';
@@ -239,6 +242,7 @@ class _ManageQueueSection extends ConsumerWidget {
     final chambersAsync =
         ref.watch(chambersByDoctorStreamProvider(currentDoctorId()));
     final scheme = Theme.of(context).colorScheme;
+    final today = todayWeekday();
 
     final chambers = chambersAsync.value;
     if (chambers == null || chambers.isEmpty) return const SizedBox.shrink();
@@ -246,34 +250,282 @@ class _ManageQueueSection extends ConsumerWidget {
     return QueueJanitorRunner(
       chamberIds: chambers.map((c) => c.id).toList(),
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Today's queues",
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: scheme.onSurfaceVariant,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        for (final c in chambers)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: Text(c.name,
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-              trailing: TextButton(
-                onPressed: () => context.push('/admin/queue/${c.id}'),
-                child: const Text('Manage'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                "Today's queues",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
-            ),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${chambers.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
-      ],
+          const SizedBox(height: 12),
+          for (final c in chambers)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _DoctorChamberCard(chamber: c, today: today),
+            ),
+        ],
       ),
     );
+  }
+}
+
+class _DoctorChamberCard extends ConsumerWidget {
+  const _DoctorChamberCard({required this.chamber, required this.today});
+
+  final Chamber chamber;
+  final String today;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final dateKey = todayDateKey();
+    final queueAsync =
+        ref.watch(queueStreamProvider(QueueKey(chamber.id, dateKey)));
+    final entriesAsync =
+        ref.watch(queueEntriesStreamProvider(QueueKey(chamber.id, dateKey)));
+    final openToday = chamber.days.contains(today);
+
+    final queueStatus = queueAsync.value?.status ?? QueueStatus.pending;
+    final entries = entriesAsync.value ?? const [];
+    final waitingCount =
+        entries.where((e) => e.status == QueueEntryStatus.waiting).length;
+    final arrivedCount =
+        entries.where((e) => e.status == QueueEntryStatus.arrived).length;
+    final inConsultation = entries
+        .where((e) => e.status == QueueEntryStatus.inConsultation)
+        .length;
+    final completed = entries.where((e) => !e.status.isActive).length;
+    final inConsultationEntries = entries
+        .where((e) => e.status == QueueEntryStatus.inConsultation)
+        .toList();
+    final currentSerial = inConsultationEntries.isEmpty
+        ? 0
+        : inConsultationEntries.first.serial;
+
+    final (badgeColor, badgeFg, badgeIcon, badgeText) = switch (queueStatus) {
+      QueueStatus.pending => (
+          scheme.surfaceContainerHigh,
+          scheme.onSurfaceVariant,
+          Icons.schedule_outlined,
+          'Not opened',
+        ),
+      QueueStatus.open => (
+          Colors.green.shade100,
+          Colors.green.shade900,
+          Icons.circle,
+          'Live',
+        ),
+      QueueStatus.closed => (
+          scheme.errorContainer,
+          scheme.onErrorContainer,
+          Icons.lock_outline,
+          'Closed',
+        ),
+    };
+
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () => context.push('/admin/queue/${chamber.id}'),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      chamber.name,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(badgeIcon, size: 11, color: badgeFg),
+                        const SizedBox(width: 4),
+                        Text(
+                          badgeText,
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: badgeFg),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                chamber.address,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.access_time,
+                      size: 13, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${chamber.startTime} – ${chamber.endTime}',
+                    style: TextStyle(
+                        fontSize: 12, color: scheme.onSurfaceVariant),
+                  ),
+                  if (!openToday) ...[
+                    const SizedBox(width: 10),
+                    Icon(Icons.event_busy_outlined,
+                        size: 13, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Closed today',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (queueStatus == QueueStatus.open || entries.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _DoctorStat(
+                          label: 'Now seeing',
+                          value: currentSerial > 0 ? '#$currentSerial' : '—',
+                          highlight: currentSerial > 0,
+                        ),
+                      ),
+                      _StatDivider(color: scheme.outlineVariant),
+                      Expanded(
+                        child: _DoctorStat(
+                          label: 'Waiting',
+                          value: '${waitingCount + arrivedCount}',
+                        ),
+                      ),
+                      _StatDivider(color: scheme.outlineVariant),
+                      Expanded(
+                        child: _DoctorStat(
+                          label: 'Done',
+                          value: '$completed',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (inConsultation == 0 && (waitingCount + arrivedCount) > 0) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 13, color: scheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Patients are waiting — tap to start',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DoctorStat extends StatelessWidget {
+  const _DoctorStat({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
+
+  final String label;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: highlight ? scheme.primary : scheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatDivider extends StatelessWidget {
+  const _StatDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 30, color: color);
   }
 }

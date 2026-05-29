@@ -140,12 +140,34 @@ class AdminHomeScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
               ],
               if (chambers.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                  child: Text(
-                    "Today's chambers",
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w600),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Text(
+                        "Today's chambers",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${chambers.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 ...chambers.map(
@@ -280,15 +302,36 @@ class _ChamberTile extends ConsumerWidget {
         entries.where((e) => e.status == QueueEntryStatus.waiting).length;
     final arrivedCount =
         entries.where((e) => e.status == QueueEntryStatus.arrived).length;
-    final inConsultation =
-        entries.where((e) => e.status == QueueEntryStatus.inConsultation).length;
-    final completed =
-        entries.where((e) => !e.status.isActive).length;
+    final inConsultation = entries
+        .where((e) => e.status == QueueEntryStatus.inConsultation)
+        .length;
+    final completed = entries.where((e) => !e.status.isActive).length;
+    final inConsultationEntries = entries
+        .where((e) => e.status == QueueEntryStatus.inConsultation)
+        .toList();
+    final currentSerial = inConsultationEntries.isEmpty
+        ? 0
+        : inConsultationEntries.first.serial;
 
-    final (badgeColor, badgeText) = switch (queueStatus) {
-      QueueStatus.pending => (scheme.surfaceContainerHigh, 'Not opened'),
-      QueueStatus.open => (Colors.green.shade100, 'Queue open'),
-      QueueStatus.closed => (scheme.errorContainer, 'Closed'),
+    final (badgeColor, badgeFg, badgeIcon, badgeText) = switch (queueStatus) {
+      QueueStatus.pending => (
+          scheme.surfaceContainerHigh,
+          scheme.onSurfaceVariant,
+          Icons.schedule_outlined,
+          'Not opened',
+        ),
+      QueueStatus.open => (
+          Colors.green.shade100,
+          Colors.green.shade900,
+          Icons.circle,
+          'Live',
+        ),
+      QueueStatus.closed => (
+          scheme.errorContainer,
+          scheme.onErrorContainer,
+          Icons.lock_outline,
+          'Closed',
+        ),
     };
 
     return Material(
@@ -309,88 +352,121 @@ class _ChamberTile extends ConsumerWidget {
                       chamber.name,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                        horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: badgeColor,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      badgeText,
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: queueStatus == QueueStatus.open
-                              ? Colors.green.shade900
-                              : scheme.onSurfaceVariant),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(badgeIcon, size: 11, color: badgeFg),
+                        const SizedBox(width: 4),
+                        Text(
+                          badgeText,
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: badgeFg),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(chamber.address,
-                  style: TextStyle(
-                      fontSize: 12, color: scheme.onSurfaceVariant)),
-              const SizedBox(height: 12),
+              Text(
+                chamber.address,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Icon(Icons.access_time,
-                      size: 14, color: scheme.onSurfaceVariant),
+                      size: 13, color: scheme.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('${chamber.startTime} – ${chamber.endTime}',
-                      style: TextStyle(
-                          fontSize: 12, color: scheme.onSurfaceVariant)),
-                  const SizedBox(width: 12),
-                  if (!openToday)
-                    Text('• Closed today',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: scheme.onSurfaceVariant,
-                            fontStyle: FontStyle.italic)),
-                ],
-              ),
-              if (queueAsync.value != null &&
-                  queueStatus != QueueStatus.pending) ...[
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.event_outlined,
-                        size: 14, color: scheme.onSurfaceVariant),
+                  Text(
+                    '${chamber.startTime} – ${chamber.endTime}',
+                    style: TextStyle(
+                        fontSize: 12, color: scheme.onSurfaceVariant),
+                  ),
+                  if (!openToday) ...[
+                    const SizedBox(width: 10),
+                    Icon(Icons.event_busy_outlined,
+                        size: 13, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
-                      _formatQueueTime(queueAsync.value!),
+                      'Closed today',
                       style: TextStyle(
-                          fontSize: 12, color: scheme.onSurfaceVariant),
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
-                ),
-              ],
+                ],
+              ),
               if (queueStatus == QueueStatus.open || entries.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 6,
-                  children: [
-                    if (inConsultation > 0)
-                      _StatPill(
-                          label: 'In consultation',
-                          value: inConsultation,
-                          color: scheme.primary),
-                    if (waitingCount + arrivedCount > 0)
-                      _StatPill(
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _ChamberStat(
+                          label: 'Now seeing',
+                          value: currentSerial > 0 ? '#$currentSerial' : '—',
+                          highlight: currentSerial > 0,
+                        ),
+                      ),
+                      _ChamberStatDivider(color: scheme.outlineVariant),
+                      Expanded(
+                        child: _ChamberStat(
                           label: 'Waiting',
-                          value: waitingCount + arrivedCount,
-                          color: scheme.onSurfaceVariant),
-                    if (completed > 0)
-                      _StatPill(
+                          value: '${waitingCount + arrivedCount}',
+                        ),
+                      ),
+                      _ChamberStatDivider(color: scheme.outlineVariant),
+                      Expanded(
+                        child: _ChamberStat(
                           label: 'Done',
-                          value: completed,
-                          color: scheme.onSurfaceVariant),
-                  ],
+                          value: '$completed',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                if (inConsultation == 0 &&
+                    (waitingCount + arrivedCount) > 0) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 13, color: scheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Patients are waiting — tap to start',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ],
           ),
@@ -400,38 +476,48 @@ class _ChamberTile extends ConsumerWidget {
   }
 }
 
-String _formatQueueTime(Queue queue) {
-  if (queue.status == QueueStatus.closed && queue.closedAt != null) {
-    return 'Closed at ${formatTime12h(queue.closedAt!)}';
-  }
-  if (queue.status == QueueStatus.open && queue.openedAt != null) {
-    return 'Opened at ${formatTime12h(queue.openedAt!)}';
-  }
-  return '';
-}
-
-class _StatPill extends StatelessWidget {
-  const _StatPill(
-      {required this.label, required this.value, required this.color});
+class _ChamberStat extends StatelessWidget {
+  const _ChamberStat({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
 
   final String label;
-  final int value;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: highlight ? scheme.primary : scheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChamberStatDivider extends StatelessWidget {
+  const _ChamberStatDivider({required this.color});
+
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('$value',
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-        const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      ],
-    );
+    return Container(width: 1, height: 30, color: color);
   }
 }
