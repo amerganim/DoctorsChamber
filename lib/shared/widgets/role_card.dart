@@ -17,6 +17,9 @@ class RoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isLight = scheme.brightness == Brightness.light;
+    final iconBg = isLight ? scheme.primary : scheme.primaryContainer;
+    final iconFg = isLight ? scheme.onPrimary : scheme.onPrimaryContainer;
     return Material(
       color: scheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(16),
@@ -31,10 +34,10 @@ class RoleCard extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
+                  color: iconBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: scheme.onPrimaryContainer, size: 28),
+                child: Icon(icon, color: iconFg, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
