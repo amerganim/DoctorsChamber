@@ -13,6 +13,31 @@ import 'doctor_profile_repository.dart';
 class DoctorHomeScreen extends ConsumerWidget {
   const DoctorHomeScreen({super.key});
 
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+            'You will need to sign in again to manage your chambers.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Stay'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await signOutDoctor();
+    if (!context.mounted) return;
+    context.go('/');
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync =
@@ -26,7 +51,7 @@ class DoctorHomeScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
-            onPressed: () => context.go('/'),
+            onPressed: () => _confirmSignOut(context),
           ),
         ],
       ),

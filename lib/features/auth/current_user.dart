@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../doctor/doctor_profile_repository.dart' show kDevDoctorId;
 import '../queue/queue_repository.dart' show kDevPatientId;
@@ -27,4 +28,18 @@ String currentDoctorId() {
 bool isDoctorSignedIn() {
   final user = FirebaseAuth.instance.currentUser;
   return user != null && !user.isAnonymous;
+}
+
+/// Sign the doctor out of Google + Firebase, then immediately sign back
+/// in anonymously so the patient flows keep working.
+Future<void> signOutDoctor() async {
+  try {
+    await GoogleSignIn.instance.signOut();
+  } catch (_) {}
+  try {
+    await FirebaseAuth.instance.signOut();
+  } catch (_) {}
+  try {
+    await FirebaseAuth.instance.signInAnonymously();
+  } catch (_) {}
 }
