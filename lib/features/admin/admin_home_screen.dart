@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
 import '../../shared/widgets/error_state.dart';
+import '../admin_invitations/invitation.dart';
+import '../admin_invitations/invitation_repository.dart';
+import '../auth/current_user.dart';
+import '../auth/user_role_enrollment.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../queue/queue.dart';
@@ -12,11 +16,45 @@ import '../queue/queue_repository.dart';
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key});
 
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+            'You will need to sign in again to manage chambers.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Stay'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await signOutDoctor();
+    ref.invalidate(userRoleEnrollmentProvider);
+    if (!context.mounted) return;
+    context.go('/');
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chambersAsync = ref.watch(allChambersStreamProvider);
     final scheme = Theme.of(context).colorScheme;
     final today = todayWeekday();
+    final email = currentUserEmail();
+    final signedIn = isAdminSignedIn();
+
+    final invitationsAsync = signedIn && email != null
+        ? ref.watch(emailInvitationsStreamProvider(email))
+        : const AsyncValue<List<Invitation>>.data([]);
+    final chambersAsync = signedIn
+        ? ref.watch(chambersWhereAdminStreamProvider(currentDoctorId()))
+        : ref.watch(allChambersStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,7 +63,7 @@ class AdminHomeScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
-            onPressed: () => context.go('/'),
+            onPressed: () => _confirmSignOut(context, ref),
           ),
         ],
       ),
@@ -33,10 +71,21 @@ class AdminHomeScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorState(
           detail: ErrorState.friendly(e),
-          onRetry: () => ref.invalidate(allChambersStreamProvider),
+          onRetry: () {
+            if (signedIn) {
+              ref.invalidate(
+                  chambersWhereAdminStreamProvider(currentDoctorId()));
+            } else {
+              ref.invalidate(allChambersStreamProvider);
+            }
+          },
         ),
         data: (chambers) {
-          if (chambers.isEmpty) {
+          final pendingInvitations = (invitationsAsync.value ?? const [])
+              .where((i) => i.status == InvitationStatus.pending)
+              .toList();
+
+          if (chambers.isEmpty && pendingInvitations.isEmpty) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -65,22 +114,136 @@ class AdminHomeScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                child: Text(
-                  "Today's chambers",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              if (pendingInvitations.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: Text(
+                    'Invitations',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
                 ),
-              ),
-              ...chambers.map(
-                (c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _ChamberTile(chamber: c, today: today),
+                ...pendingInvitations.map(
+                  (inv) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _InvitationTile(invitation: inv),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 8),
+              ],
+              if (chambers.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: Text(
+                    "Today's chambers",
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                ...chambers.map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _ChamberTile(chamber: c, today: today),
+                  ),
+                ),
+              ],
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _InvitationTile extends ConsumerWidget {
+  const _InvitationTile({required this.invitation});
+
+  final Invitation invitation;
+
+  Future<void> _accept(BuildContext context, WidgetRef ref) async {
+    final uid = currentDoctorId();
+    try {
+      await ref.read(invitationRepositoryProvider).accept(
+            chamberId: invitation.chamberId,
+            invitationId: invitation.id,
+            adminUid: uid,
+            adminEmail: currentUserEmail() ?? '',
+            adminDisplayName: currentUserDisplayName() ?? '',
+          );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Joined the chamber.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _decline(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(invitationRepositoryProvider).decline(
+            chamberId: invitation.chamberId,
+            invitationId: invitation.id,
+          );
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.mail_outline,
+                  size: 18, color: scheme.onPrimaryContainer),
+              const SizedBox(width: 8),
+              Text(
+                'YOU\'VE BEEN INVITED',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onPrimaryContainer,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            invitation.invitedByDoctorName.isEmpty
+                ? 'A doctor wants you to manage a chamber.'
+                : '${invitation.invitedByDoctorName} wants you to manage a chamber.',
+            style: TextStyle(
+                fontSize: 14, color: scheme.onPrimaryContainer),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => _accept(context, ref),
+                  child: const Text('Accept'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: () => _decline(context, ref),
+                child: const Text('Decline'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -30,6 +30,21 @@ bool isDoctorSignedIn() {
   return user != null && !user.isAnonymous;
 }
 
+/// True when a real (non-anonymous) user is signed in (alias for clarity).
+bool isAdminSignedIn() => isDoctorSignedIn();
+
+String? currentUserEmail() {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null || user.isAnonymous) return null;
+  return user.email?.toLowerCase();
+}
+
+String? currentUserDisplayName() {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null || user.isAnonymous) return null;
+  return user.displayName;
+}
+
 /// Sign the doctor out of Google + Firebase, then immediately sign back
 /// in anonymously so the patient flows keep working.
 Future<void> signOutDoctor() async {

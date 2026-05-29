@@ -26,6 +26,15 @@ class ChamberRepository {
         .toList());
   }
 
+  Stream<List<Chamber>> watchWhereAdmin(String uid) {
+    return _chambers
+        .where('adminIds', arrayContains: uid)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => Chamber.fromMap(d.id, d.data()))
+            .toList());
+  }
+
   Future<String> add(Chamber chamber) async {
     final ref = await _chambers.add(chamber.toMap());
     return ref.id;
@@ -47,4 +56,9 @@ final chambersByDoctorStreamProvider =
 
 final allChambersStreamProvider = StreamProvider<List<Chamber>>((ref) {
   return ref.watch(chamberRepositoryProvider).watchAll();
+});
+
+final chambersWhereAdminStreamProvider =
+    StreamProvider.family<List<Chamber>, String>((ref, uid) {
+  return ref.watch(chamberRepositoryProvider).watchWhereAdmin(uid);
 });

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
 import '../auth/current_user.dart';
+import '../auth/user_role_enrollment.dart';
 import '../chambers/chamber_repository.dart';
 import 'doctor_day_status.dart';
 import 'doctor_day_status_dialog.dart';
@@ -13,7 +14,7 @@ import 'doctor_profile_repository.dart';
 class DoctorHomeScreen extends ConsumerWidget {
   const DoctorHomeScreen({super.key});
 
-  Future<void> _confirmSignOut(BuildContext context) async {
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -34,6 +35,7 @@ class DoctorHomeScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
     await signOutDoctor();
+    ref.invalidate(userRoleEnrollmentProvider);
     if (!context.mounted) return;
     context.go('/');
   }
@@ -51,7 +53,7 @@ class DoctorHomeScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
-            onPressed: () => _confirmSignOut(context),
+            onPressed: () => _confirmSignOut(context, ref),
           ),
         ],
       ),

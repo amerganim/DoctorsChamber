@@ -8,6 +8,7 @@ import '../../shared/widgets/role_card.dart';
 import '../platform/platform_lock.dart';
 import 'current_user.dart';
 import 'user_role.dart';
+import 'user_role_enrollment.dart';
 
 // Set to false once Firebase is on the Blaze plan and real phone auth works.
 const _devSkipLogin = true;
@@ -23,8 +24,8 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
   bool _signingIn = false;
 
   Future<void> _pickRole(BuildContext context, UserRole role) async {
-    if (role == UserRole.doctor) {
-      await _signInAsDoctor(context);
+    if (role == UserRole.doctor || role == UserRole.admin) {
+      await _signInWithGoogle(context, role);
       return;
     }
     if (_devSkipLogin) {
@@ -34,9 +35,9 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
     }
   }
 
-  Future<void> _signInAsDoctor(BuildContext context) async {
+  Future<void> _signInWithGoogle(BuildContext context, UserRole role) async {
     if (isDoctorSignedIn()) {
-      context.push(UserRole.doctor.homeRoute);
+      context.push(role.homeRoute);
       return;
     }
     setState(() => _signingIn = true);
@@ -64,8 +65,9 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
       } else {
         await FirebaseAuth.instance.signInWithCredential(credential);
       }
+      ref.invalidate(userRoleEnrollmentProvider);
       if (!context.mounted) return;
-      context.push(UserRole.doctor.homeRoute);
+      context.push(role.homeRoute);
     } on GoogleSignInException catch (e) {
       if (e.code != GoogleSignInExceptionCode.canceled && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,6 +94,11 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
   @override
   Widget build(BuildContext context) {
     final ref = this.ref;
+    final enrollment =
+        ref.watch(userRoleEnrollmentProvider).value ??
+            UserRoleEnrollment.neither;
+    final showDoctor = enrollment != UserRoleEnrollment.admin;
+    final showAdmin = enrollment != UserRoleEnrollment.doctor;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -127,22 +134,30 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
                 onTap: () => _pickRole(context, UserRole.patient),
               ),
               const SizedBox(height: 12),
-              RoleCard(
-                icon: Icons.medical_services_outlined,
-                title: _signingIn ? 'Signing in…' : 'Doctor',
-                subtitle:
-                    'Sign in with Google · manage chambers and queue',
-                onTap: _signingIn
-                    ? () {}
-                    : () => _pickRole(context, UserRole.doctor),
-              ),
-              const SizedBox(height: 12),
-              RoleCard(
-                icon: Icons.assignment_outlined,
-                title: 'Chamber Admin',
-                subtitle: 'Run the daily queue for a doctor',
-                onTap: () => _pickRole(context, UserRole.admin),
-              ),
+              if (showDoctor) ...[
+                RoleCard(
+                  icon: Icons.medical_services_outlined,
+                  title: _signingIn ? 'Signing in…' : 'Doctor',
+                  subtitle:
+                      'Sign in with Google · manage chambers and queue',
+                  onTap: _signingIn
+                      ? () {}
+                      : () => _pickRole(context, UserRole.doctor),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (showAdmin) ...[
+                RoleCard(
+                  icon: Icons.assignment_outlined,
+                  title: _signingIn ? 'Signing in…' : 'Chamber Admin',
+                  subtitle:
+                      'Sign in with Google · run the daily queue for a doctor',
+                  onTap: _signingIn
+                      ? () {}
+                      : () => _pickRole(context, UserRole.admin),
+                ),
+                const SizedBox(height: 12),
+              ],
               const Spacer(),
               Align(
                 alignment: Alignment.center,

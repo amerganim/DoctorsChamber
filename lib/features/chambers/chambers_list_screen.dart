@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets/error_state.dart';
+import '../admin_invitations/manage_admins_screen.dart';
 import '../auth/current_user.dart';
 import 'chamber.dart';
 import 'chamber_repository.dart';
@@ -126,20 +127,37 @@ class _ChamberCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: scheme.primaryContainer,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                chamber.bookingMode.displayName,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: scheme.onPrimaryContainer,
-                  fontWeight: FontWeight.w500,
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    chamber.bookingMode.displayName,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Manage chamber admins',
+                  icon:
+                      const Icon(Icons.group_outlined, size: 20),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ManageAdminsScreen(chamberId: chamber.id),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
