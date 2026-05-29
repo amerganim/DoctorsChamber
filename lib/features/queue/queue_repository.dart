@@ -2,27 +2,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../chambers/chamber.dart';
+import '../platform/platform_config.dart';
 import 'queue.dart';
 
 const kDevPatientId = 'dev-patient';
 const kDevAdminId = 'dev-admin';
 
-/// Days after which a queue document and its entries are eligible for
-/// auto-deletion via Firestore TTL (configured in the Firebase console
-/// against the `deleteAt` field of the `queues` collection and the
-/// `entries` collection group).
-const _queueRetentionDays = 30;
-
-Timestamp _retentionTimestamp() {
-  return Timestamp.fromDate(
-    DateTime.now().add(const Duration(days: _queueRetentionDays)),
-  );
-}
-
 class QueueRepository {
   QueueRepository(this._firestore);
 
   final FirebaseFirestore _firestore;
+
+  int retentionDays = kDefaultRetentionDays;
+
+  Timestamp _retentionTimestamp() {
+    return Timestamp.fromDate(
+      DateTime.now().add(Duration(days: retentionDays)),
+    );
+  }
 
   DocumentReference<Map<String, dynamic>> _queueDoc(
       String chamberId, String date) {
@@ -393,7 +390,16 @@ class QueueRepository {
 }
 
 final queueRepositoryProvider = Provider<QueueRepository>((ref) {
-  return QueueRepository(FirebaseFirestore.instance);
+  final repo = QueueRepository(FirebaseFirestore.instance);
+  ref.listen<AsyncValue<PlatformConfig>>(
+    platformConfigStreamProvider,
+    (_, next) {
+      final config = next.value;
+      if (config != null) repo.retentionDays = config.retentionDays;
+    },
+    fireImmediately: true,
+  );
+  return repo;
 });
 
 final queueStreamProvider =

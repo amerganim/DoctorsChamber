@@ -90,7 +90,10 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
       BuildContext context, WidgetRef ref) async {
     final ok = await PlatformLockGate.ensureUnlocked(context, ref);
     if (!ok || !context.mounted) return;
-    context.push('/platform/verification');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    if (!context.mounted) return;
+    context.push('/platform');
   }
 
   @override
@@ -166,7 +169,7 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
                   alignment: Alignment.center,
                   child: TextButton.icon(
                     icon: const Icon(Icons.verified_user_outlined, size: 16),
-                    label: const Text('Platform admin · Verification queue'),
+                    label: const Text('Platform admin'),
                     onPressed: () => _openPlatformAdmin(context, ref),
                   ),
                 ),
