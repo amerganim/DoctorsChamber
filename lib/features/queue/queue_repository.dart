@@ -7,6 +7,18 @@ import 'queue.dart';
 const kDevPatientId = 'dev-patient';
 const kDevAdminId = 'dev-admin';
 
+/// Days after which a queue document and its entries are eligible for
+/// auto-deletion via Firestore TTL (configured in the Firebase console
+/// against the `deleteAt` field of the `queues` collection and the
+/// `entries` collection group).
+const _queueRetentionDays = 30;
+
+Timestamp _retentionTimestamp() {
+  return Timestamp.fromDate(
+    DateTime.now().add(const Duration(days: _queueRetentionDays)),
+  );
+}
+
 class QueueRepository {
   QueueRepository(this._firestore);
 
@@ -51,6 +63,7 @@ class QueueRepository {
       'statusNote': '',
       'openedAt': FieldValue.serverTimestamp(),
       'closedAt': null,
+      'deleteAt': _retentionTimestamp(),
     }, SetOptions(merge: true));
   }
 
@@ -76,6 +89,7 @@ class QueueRepository {
     required int slotCount,
   }) async {
     final batch = _firestore.batch();
+    final ttl = _retentionTimestamp();
     batch.set(_queueDoc(chamberId, date), {
       'chamberId': chamberId,
       'date': date,
@@ -84,6 +98,7 @@ class QueueRepository {
       'statusNote': '',
       'openedAt': FieldValue.serverTimestamp(),
       'closedAt': null,
+      'deleteAt': ttl,
     }, SetOptions(merge: true));
     for (var i = 1; i <= slotCount; i++) {
       final doc = _entriesCol(chamberId, date).doc();
@@ -97,6 +112,7 @@ class QueueRepository {
         'date': date,
         'bookedBy': 'admin',
         'bookedById': kDevAdminId,
+        'deleteAt': ttl,
       });
     }
     await batch.commit();
@@ -186,6 +202,7 @@ class QueueRepository {
       'date': date,
       'bookedBy': 'admin',
       'bookedById': kDevAdminId,
+      'deleteAt': _retentionTimestamp(),
     });
   }
 
@@ -205,6 +222,7 @@ class QueueRepository {
 
     final batch = _firestore.batch();
     final assigned = <int>[];
+    final ttl = _retentionTimestamp();
     for (final p in patients) {
       final doc = _entriesCol(chamberId, date).doc();
       batch.set(doc, {
@@ -217,6 +235,7 @@ class QueueRepository {
         'date': date,
         'bookedBy': 'admin',
         'bookedById': kDevAdminId,
+        'deleteAt': ttl,
       });
       assigned.add(nextSerial);
       nextSerial++;
@@ -302,6 +321,7 @@ class QueueRepository {
       'date': date,
       'bookedBy': 'patient',
       'bookedById': patientId,
+      'deleteAt': _retentionTimestamp(),
     });
 
     return (errorMessage: null, assignedSerial: nextSerial);

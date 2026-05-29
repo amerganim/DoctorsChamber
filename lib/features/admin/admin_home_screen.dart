@@ -6,11 +6,13 @@ import '../../core/weekday.dart';
 import '../../shared/widgets/error_state.dart';
 import '../admin_invitations/invitation.dart';
 import '../admin_invitations/invitation_repository.dart';
+import '../../shared/widgets/loading_overlay.dart';
 import '../auth/current_user.dart';
 import '../auth/user_role_enrollment.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../queue/queue.dart';
+import '../queue/queue_janitor.dart';
 import '../queue/queue_repository.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
@@ -36,8 +38,12 @@ class AdminHomeScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    if (!context.mounted) return;
+    LoadingOverlay.show(context, 'Signing you out…');
     await signOutDoctor();
     ref.invalidate(userRoleEnrollmentProvider);
+    if (!context.mounted) return;
+    LoadingOverlay.dismiss(context);
     if (!context.mounted) return;
     context.go('/');
   }
@@ -111,7 +117,9 @@ class AdminHomeScreen extends ConsumerWidget {
               ),
             );
           }
-          return ListView(
+          return QueueJanitorRunner(
+            chamberIds: chambers.map((c) => c.id).toList(),
+            child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               if (pendingInvitations.isNotEmpty) ...[
@@ -148,6 +156,7 @@ class AdminHomeScreen extends ConsumerWidget {
                 ),
               ],
             ],
+            ),
           );
         },
       ),

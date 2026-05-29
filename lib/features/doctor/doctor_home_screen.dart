@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../../shared/widgets/loading_overlay.dart';
 import '../auth/current_user.dart';
 import '../auth/user_role_enrollment.dart';
 import '../chambers/chamber_repository.dart';
+import '../queue/queue_janitor.dart';
 import 'doctor_day_status.dart';
 import 'doctor_day_status_dialog.dart';
 import 'doctor_day_status_repository.dart';
@@ -34,8 +36,12 @@ class DoctorHomeScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    if (!context.mounted) return;
+    LoadingOverlay.show(context, 'Signing you out…');
     await signOutDoctor();
     ref.invalidate(userRoleEnrollmentProvider);
+    if (!context.mounted) return;
+    LoadingOverlay.dismiss(context);
     if (!context.mounted) return;
     context.go('/');
   }
@@ -237,7 +243,9 @@ class _ManageQueueSection extends ConsumerWidget {
     final chambers = chambersAsync.value;
     if (chambers == null || chambers.isEmpty) return const SizedBox.shrink();
 
-    return Column(
+    return QueueJanitorRunner(
+      chamberIds: chambers.map((c) => c.id).toList(),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -265,6 +273,7 @@ class _ManageQueueSection extends ConsumerWidget {
             ),
           ),
       ],
+      ),
     );
   }
 }
