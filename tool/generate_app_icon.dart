@@ -5,7 +5,7 @@ import 'package:image/image.dart' as img;
 const int _outputSize = 1024;
 
 void main() {
-  stdout.writeln('Generating DoctorsChamber app icon...');
+  stdout.writeln('Generating Doctor Inside app icon...');
   _writePng(_buildLegacyIcon(), 'assets/icon/app_icon.png');
   _writePng(_buildForegroundIcon(), 'assets/icon/app_icon_foreground.png');
   stdout.writeln('Done.');

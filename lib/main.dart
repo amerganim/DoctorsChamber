@@ -17,5 +17,5 @@ Future<void> main() async {
       // the kDevPatientId sentinel until anonymous sign-in succeeds.
     }
   }
-  runApp(const ProviderScope(child: DoctorsChamberApp()));
+  runApp(const ProviderScope(child: DoctorInsideApp()));
 }

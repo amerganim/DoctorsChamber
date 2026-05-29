@@ -115,7 +115,7 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
             children: [
               const SizedBox(height: 24),
               Text(
-                'DoctorsChamber',
+                'Doctor Inside',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.primary,
