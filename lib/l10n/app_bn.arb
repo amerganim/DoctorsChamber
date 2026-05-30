@@ -1,0 +1,18 @@
+{
+  "@@locale": "bn",
+  "appName": "ডক্টর ইনসাইড",
+  "appTagline": "ডাক্তার খুঁজুন, সিরিয়াল বুক করুন, চেম্বার পরিচালনা করুন।",
+  "whoAreYou": "আপনি কে?",
+  "rolePatient": "রোগী",
+  "rolePatientSubtitle": "ডাক্তার খুঁজুন, সিরিয়াল বুক করুন, লাইভ কিউ দেখুন",
+  "roleDoctor": "ডাক্তার",
+  "roleDoctorSubtitleSignedIn": "চেম্বার ও কিউ পরিচালনা করুন",
+  "roleDoctorSubtitleSignedOut": "Google দিয়ে সাইন ইন · চেম্বার ও কিউ পরিচালনা করুন",
+  "roleChamberAdmin": "চেম্বার অ্যাডমিন",
+  "roleChamberAdminSubtitleSignedIn": "ডাক্তারের দৈনিক কিউ চালান",
+  "roleChamberAdminSubtitleSignedOut": "Google দিয়ে সাইন ইন · ডাক্তারের দৈনিক কিউ চালান",
+  "platformAdmin": "প্ল্যাটফর্ম অ্যাডমিন",
+  "languageEnglishShort": "EN",
+  "languageBanglaShort": "বাং",
+  "languageSwitchTooltip": "ভাষা পরিবর্তন"
+}

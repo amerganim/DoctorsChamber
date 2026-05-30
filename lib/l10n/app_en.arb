@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+  "appName": "Doctor Inside",
+  "@appName": {
+    "description": "Brand name of the application."
+  },
+  "appTagline": "Find doctors, book serials, manage chambers.",
+  "whoAreYou": "Who are you?",
+  "rolePatient": "Patient",
+  "rolePatientSubtitle": "Find doctors, book serials, see live queues",
+  "roleDoctor": "Doctor",
+  "roleDoctorSubtitleSignedIn": "Manage chambers and queue",
+  "roleDoctorSubtitleSignedOut": "Sign in with Google · manage chambers and queue",
+  "roleChamberAdmin": "Chamber Admin",
+  "roleChamberAdminSubtitleSignedIn": "Run the daily queue for a doctor",
+  "roleChamberAdminSubtitleSignedOut": "Sign in with Google · run the daily queue for a doctor",
+  "platformAdmin": "Platform admin",
+  "languageEnglishShort": "EN",
+  "languageBanglaShort": "বাং",
+  "languageSwitchTooltip": "Change language"
+}
