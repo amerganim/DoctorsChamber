@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const _seed = Color(0xFF0EA5A4);
+  // Seed sampled from the app launch icon — a vivid medical blue that
+  // bridges the deep navy and cyan tones in the "D" gradient. Material 3
+  // generates the rest of the palette (primary, container, error, etc.)
+  // from this single seed for both light and dark modes.
+  static const _seed = Color(0xFF1976D2);
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);
