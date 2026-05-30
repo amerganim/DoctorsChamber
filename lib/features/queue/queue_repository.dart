@@ -68,6 +68,7 @@ class QueueRepository {
     await _queueDoc(chamberId, date).set({
       'status': QueueStatus.closed.name,
       'doctorStatus': DoctorStatus.doneForDay.name,
+      'statusNote': '',
       'closedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -76,6 +77,7 @@ class QueueRepository {
     await _queueDoc(chamberId, date).set({
       'status': QueueStatus.open.name,
       'doctorStatus': DoctorStatus.available.name,
+      'statusNote': '',
       'closedAt': null,
     }, SetOptions(merge: true));
   }
