@@ -5,6 +5,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'queue_repository.dart';
 
 class ScanRegisterScreen extends ConsumerStatefulWidget {
@@ -182,7 +183,8 @@ class _ScanRegisterScreenState extends ConsumerState<ScanRegisterScreen> {
     }
     if (patients.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No entries to add')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context).noEntriesToAdd)),
       );
       return;
     }
@@ -195,30 +197,35 @@ class _ScanRegisterScreenState extends ConsumerState<ScanRegisterScreen> {
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Added ${assigned.length} patients to queue')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).bulkAddSuccess(assigned.length))),
       );
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bulk add failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).bulkAddFailed(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final hasRows = _rows.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan register'),
+        title: Text(l10n.scanRegisterTitle),
         actions: [
           if (hasRows)
             IconButton(
-              tooltip: 'Rescan',
+              tooltip: l10n.rescanTooltip,
               icon: const Icon(Icons.refresh),
               onPressed:
                   _processing || _saving ? null : () => _scan(ImageSource.camera),
@@ -227,13 +234,13 @@ class _ScanRegisterScreenState extends ConsumerState<ScanRegisterScreen> {
       ),
       body: SafeArea(
         child: _processing
-            ? const Center(
+            ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Reading register…'),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(l10n.readingRegister),
                   ],
                 ),
               )
@@ -260,7 +267,7 @@ class _ScanRegisterScreenState extends ConsumerState<ScanRegisterScreen> {
                           strokeWidth: 2, color: scheme.onPrimary),
                     )
                   : const Icon(Icons.playlist_add_check),
-              label: Text('Add ${_rows.length} to queue'),
+              label: Text(l10n.addNToQueue(_rows.length)),
             )
           : null,
     );
@@ -289,21 +296,21 @@ class _Intro extends StatelessWidget {
           Icon(Icons.document_scanner_outlined,
               size: 80, color: scheme.onSurfaceVariant),
           const SizedBox(height: 16),
-          const Text(
-            'Scan a register page',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          Text(
+            AppLocalizations.of(context).scanIntroTitle,
+            style:
+                const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
-            'Hold the page flat, fill the viewfinder, and take a clear photo. '
-            'Each detected row becomes an editable entry you can review before adding.',
+            AppLocalizations.of(context).scanIntroHint,
             textAlign: TextAlign.center,
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 32),
           FilledButton.icon(
             icon: const Icon(Icons.camera_alt),
-            label: const Text('Take photo'),
+            label: Text(AppLocalizations.of(context).takePhotoButton),
             onPressed: onCamera,
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
@@ -312,7 +319,7 @@ class _Intro extends StatelessWidget {
           const SizedBox(height: 12),
           OutlinedButton.icon(
             icon: const Icon(Icons.photo_library_outlined),
-            label: const Text('Choose from gallery'),
+            label: Text(AppLocalizations.of(context).chooseGalleryButton),
             onPressed: onGallery,
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
@@ -355,7 +362,7 @@ class _RowsList extends StatelessWidget {
             child: TextButton.icon(
               onPressed: onAddRow,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add row manually'),
+              label: Text(AppLocalizations.of(context).addRowManually),
             ),
           );
         }
@@ -415,8 +422,8 @@ class _RowCard extends StatelessWidget {
                 TextField(
                   controller: row.nameController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context).nameLabel,
                     isDense: true,
                   ),
                 ),
@@ -426,8 +433,8 @@ class _RowCard extends StatelessWidget {
                   keyboardType: TextInputType.phone,
                   maxLength: 11,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Phone',
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context).phoneLabel,
                     isDense: true,
                     counterText: '',
                   ),
@@ -438,7 +445,7 @@ class _RowCard extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: onDelete,
-            tooltip: 'Delete row',
+            tooltip: AppLocalizations.of(context).deleteRowTooltip,
           ),
         ],
       ),

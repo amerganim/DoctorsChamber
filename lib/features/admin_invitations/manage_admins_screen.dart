@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import 'chamber_admin.dart';
 import 'invitation.dart';
 import 'invitation_repository.dart';
@@ -13,6 +14,7 @@ class ManageAdminsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final adminsAsync = ref.watch(chamberAdminsStreamProvider(chamberId));
     final invitationsAsync =
         ref.watch(chamberInvitationsStreamProvider(chamberId));
@@ -25,7 +27,7 @@ class ManageAdminsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chamber admins'),
+        title: Text(l10n.chamberAdminsTitle),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
@@ -38,14 +40,14 @@ class ManageAdminsScreen extends ConsumerWidget {
                   Icon(Icons.group_outlined,
                       size: 64, color: scheme.onSurfaceVariant),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No admins yet',
-                    style: TextStyle(
+                  Text(
+                    l10n.noAdminsYet,
+                    style: const TextStyle(
                         fontSize: 17, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Invite someone by Google email to manage this chamber\'s daily queue.',
+                    l10n.noAdminsHint,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
@@ -54,7 +56,7 @@ class ManageAdminsScreen extends ConsumerWidget {
             ),
           if (admins.isNotEmpty) ...[
             Text(
-              'CURRENT ADMINS (${admins.length})',
+              l10n.currentAdminsHeader(admins.length),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -71,7 +73,7 @@ class ManageAdminsScreen extends ConsumerWidget {
           ],
           if (pendingInvitations.isNotEmpty) ...[
             Text(
-              'PENDING INVITATIONS (${pendingInvitations.length})',
+              l10n.pendingInvitationsHeader(pendingInvitations.length),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -90,7 +92,7 @@ class ManageAdminsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _invite(context),
         icon: const Icon(Icons.person_add_alt_1_outlined),
-        label: const Text('Invite admin'),
+        label: Text(l10n.inviteAdminFab),
       ),
     );
   }
@@ -102,7 +104,9 @@ class ManageAdminsScreen extends ConsumerWidget {
     );
     if (sent == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitation sent')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).invitationSentSnack)),
       );
     }
   }
@@ -115,20 +119,20 @@ class _AdminTile extends ConsumerWidget {
   final ChamberAdmin admin;
 
   Future<void> _confirmRemove(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Remove admin?'),
-        content: Text(
-            '${admin.label} will lose access to this chamber\'s queue.'),
+        title: Text(l10n.removeAdminTitle),
+        content: Text(l10n.removeAdminBody(admin.label)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
+            child: Text(l10n.removeAction),
           ),
         ],
       ),
@@ -141,12 +145,12 @@ class _AdminTile extends ConsumerWidget {
           );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${admin.label} removed')),
+        SnackBar(content: Text(l10n.removedSnack(admin.label))),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
+        SnackBar(content: Text(l10n.failedShort(e.toString()))),
       );
     }
   }
@@ -192,7 +196,7 @@ class _AdminTile extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Remove',
+            tooltip: AppLocalizations.of(context).removeAction,
             icon: const Icon(Icons.person_remove_outlined),
             onPressed: () => _confirmRemove(context, ref),
           ),
@@ -215,12 +219,16 @@ class _InvitationTile extends ConsumerWidget {
           );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitation revoked')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).invitationRevokedSnack)),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).failedShort(e.toString()))),
       );
     }
   }
@@ -251,7 +259,7 @@ class _InvitationTile extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Revoke',
+            tooltip: AppLocalizations.of(context).revokeTooltip,
             icon: const Icon(Icons.close),
             onPressed: () => _revoke(context, ref),
           ),

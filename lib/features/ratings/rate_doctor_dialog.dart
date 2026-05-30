@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../auth/current_user.dart';
 import 'rating_repository.dart';
 
@@ -48,22 +49,25 @@ class _RateDoctorDialogState extends ConsumerState<RateDoctorDialog> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).saveFailedSnack(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: Text('Rate ${widget.doctorName}'),
+      title: Text(l10n.rateDoctorTitle(widget.doctorName)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('How was your consultation?'),
+            Text(l10n.consultationQuestion),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -89,9 +93,9 @@ class _RateDoctorDialogState extends ConsumerState<RateDoctorDialog> {
               maxLines: 3,
               maxLength: 240,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Comment (optional)',
-                hintText: 'Share more about your experience',
+              decoration: InputDecoration(
+                labelText: l10n.commentOptionalLabel,
+                hintText: l10n.commentHint,
                 alignLabelWithHint: true,
               ),
             ),
@@ -101,7 +105,7 @@ class _RateDoctorDialogState extends ConsumerState<RateDoctorDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving || _stars == 0 ? null : _submit,
@@ -110,7 +114,7 @@ class _RateDoctorDialogState extends ConsumerState<RateDoctorDialog> {
                   height: 18,
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Submit'),
+              : Text(l10n.submitAction),
         ),
       ],
     );

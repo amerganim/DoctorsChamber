@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../../shared/widgets/error_state.dart';
 import '../auth/current_user.dart';
 import '../chambers/chamber.dart';
@@ -17,6 +19,7 @@ class MyBookingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final bookingsAsync =
         ref.watch(patientBookingsStreamProvider(currentPatientId()));
     final chambersAsync = ref.watch(allChambersStreamProvider);
@@ -24,7 +27,7 @@ class MyBookingsScreen extends ConsumerWidget {
     final today = todayDateKey();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Bookings')),
+      appBar: AppBar(title: Text(l10n.myBookings)),
       body: bookingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorState(
@@ -43,14 +46,14 @@ class MyBookingsScreen extends ConsumerWidget {
                     Icon(Icons.event_busy_outlined,
                         size: 64, color: scheme.onSurfaceVariant),
                     const SizedBox(height: 16),
-                    const Text(
-                      'No bookings yet',
-                      style: TextStyle(
+                    Text(
+                      l10n.noBookingsYet,
+                      style: const TextStyle(
                           fontSize: 17, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Find a doctor and book a serial to see it here.',
+                      l10n.noBookingsHint,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
@@ -74,7 +77,7 @@ class MyBookingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               if (upcoming.isNotEmpty) ...[
-                _SectionHeader('Today'),
+                _SectionHeader(l10n.bookingsTodaySection),
                 ...upcoming.map((b) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _BookingCard(
@@ -86,7 +89,7 @@ class MyBookingsScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
               ],
               if (past.isNotEmpty) ...[
-                _SectionHeader('Past'),
+                _SectionHeader(l10n.bookingsPastSection),
                 ...past.map((b) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _BookingCard(
@@ -160,26 +163,28 @@ class _BookingCard extends ConsumerWidget {
     );
     if (ok == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thanks for your rating!')),
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).thanksForRating)),
       );
     }
   }
 
   Future<void> _confirmCancel(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Cancel booking #${booking.serial}?'),
-        content: const Text(
-            'Your serial will be released. You can re-book if the queue still has space.'),
+        title: Text(l10n.cancelBookingTitle(booking.serial)),
+        content: Text(l10n.cancelBookingBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep booking'),
+            child: Text(l10n.keepBooking),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Cancel booking'),
+            child: Text(l10n.cancelBookingAction),
           ),
         ],
       ),
@@ -194,12 +199,12 @@ class _BookingCard extends ConsumerWidget {
           );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booking #${booking.serial} cancelled')),
+        SnackBar(content: Text(l10n.bookingCancelled(booking.serial))),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cancel failed: $e')),
+        SnackBar(content: Text(l10n.cancelFailed(e.toString()))),
       );
     }
   }
@@ -249,7 +254,8 @@ class _BookingCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          chamber?.name ?? 'Chamber',
+                          chamber?.name ??
+                              AppLocalizations.of(context).chamberFallback,
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600),
                         ),
@@ -269,7 +275,8 @@ class _BookingCard extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            booking.status.displayName,
+                            AppLocalizations.of(context)
+                                .entryStatusDisplay(booking.status),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -291,7 +298,8 @@ class _BookingCard extends ConsumerWidget {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Cancel booking'),
+                    label: Text(
+                        AppLocalizations.of(context).cancelBookingAction),
                     onPressed: () => _confirmCancel(context, ref),
                   ),
                 ),
@@ -303,7 +311,8 @@ class _BookingCard extends ConsumerWidget {
                   child: TextButton.icon(
                     icon:
                         const Icon(Icons.star_outline, size: 18),
-                    label: const Text('Rate doctor'),
+                    label:
+                        Text(AppLocalizations.of(context).rateDoctorAction),
                     onPressed: () => _showRateDialog(context, ref),
                   ),
                 ),

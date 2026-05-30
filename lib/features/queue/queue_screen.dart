@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import 'queue.dart';
@@ -38,14 +40,15 @@ class QueueScreen extends ConsumerWidget {
       ),
     );
 
+    final l10n = AppLocalizations.of(context);
     return ScaffoldMessenger(
       child: Scaffold(
       appBar: AppBar(
-        title: Text(chamber?.name ?? 'Queue'),
+        title: Text(chamber?.name ?? l10n.queueScreenFallback),
         actions: [
           if (queueAsync.value?.status == QueueStatus.open) ...[
             IconButton(
-              tooltip: 'Broadcast',
+              tooltip: l10n.broadcastTooltip,
               icon: const Icon(Icons.campaign_outlined),
               onPressed: () => _showBroadcastDialog(
                 context,
@@ -56,37 +59,37 @@ class QueueScreen extends ConsumerWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Reorder queue',
+              tooltip: l10n.reorderTooltip,
               icon: const Icon(Icons.swap_vert),
               onPressed: () =>
                   context.push('/admin/queue/$chamberId/reorder'),
             ),
             IconButton(
-              tooltip: 'Scan register',
+              tooltip: l10n.scanRegisterTooltip,
               icon: const Icon(Icons.document_scanner_outlined),
               onPressed: () =>
                   context.push('/admin/queue/$chamberId/scan'),
             ),
             IconButton(
-              tooltip: 'Close queue',
+              tooltip: l10n.closeQueueTooltip,
               icon: const Icon(Icons.lock_outline),
               onPressed: () =>
                   _confirmCloseQueue(context, ref, chamberId, date),
             ),
             PopupMenuButton<String>(
-              tooltip: 'More',
+              tooltip: l10n.moreMenuTooltip,
               icon: const Icon(Icons.more_vert),
               onSelected: (v) {
                 if (v == 'clear_all') {
                   _confirmClearAll(context, ref, chamberId, date);
                 }
               },
-              itemBuilder: (_) => const [
+              itemBuilder: (_) => [
                 PopupMenuItem<String>(
                   value: 'clear_all',
                   child: ListTile(
-                    leading: Icon(Icons.delete_sweep_outlined),
-                    title: Text('Clear all patients'),
+                    leading: const Icon(Icons.delete_sweep_outlined),
+                    title: Text(l10n.clearAllPatientsMenu),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
@@ -95,7 +98,7 @@ class QueueScreen extends ConsumerWidget {
           ],
           if (queueAsync.value?.status == QueueStatus.closed)
             IconButton(
-              tooltip: 'Reopen queue',
+              tooltip: l10n.reopenQueueTooltip,
               icon: const Icon(Icons.lock_open_outlined),
               onPressed: () =>
                   ref.read(queueRepositoryProvider).reopenQueue(chamberId, date),
@@ -104,7 +107,7 @@ class QueueScreen extends ConsumerWidget {
       ),
       body: queueAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed: $e')),
+        error: (e, _) => Center(child: Text(l10n.failedShort(e.toString()))),
         data: (queue) {
           final status = queue?.status ?? QueueStatus.pending;
           if (status == QueueStatus.pending) {
@@ -126,7 +129,7 @@ class QueueScreen extends ConsumerWidget {
           ? FloatingActionButton.extended(
               onPressed: () => _showAddPatient(context, ref, chamberId, date),
               icon: const Icon(Icons.person_add),
-              label: const Text('Add patient'),
+              label: Text(l10n.addPatientFab),
             )
           : null,
       ),
@@ -135,20 +138,20 @@ class QueueScreen extends ConsumerWidget {
 
   Future<void> _confirmCloseQueue(BuildContext context, WidgetRef ref,
       String chamberId, String date) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Close queue for today?'),
-        content: const Text(
-            'No more patients can be added. Existing entries stay visible.'),
+        title: Text(l10n.closeQueueDialogTitle),
+        content: Text(l10n.closeQueueDialogBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Close queue'),
+            child: Text(l10n.closeQueueButton),
           ),
         ],
       ),
@@ -160,18 +163,16 @@ class QueueScreen extends ConsumerWidget {
 
   Future<void> _confirmClearAll(BuildContext context, WidgetRef ref,
       String chamberId, String date) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Clear all patients?'),
-        content: const Text(
-            'This will delete every entry from today\'s queue, including those '
-            'already seen. The queue stays open so you can start fresh. '
-            'This cannot be undone.'),
+        title: Text(l10n.clearAllDialogTitle),
+        content: Text(l10n.clearAllDialogBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton.tonal(
             style: FilledButton.styleFrom(
@@ -179,7 +180,7 @@ class QueueScreen extends ConsumerWidget {
               backgroundColor: Theme.of(context).colorScheme.errorContainer,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear all'),
+            child: Text(l10n.clearAllButton),
           ),
         ],
       ),
@@ -191,16 +192,16 @@ class QueueScreen extends ConsumerWidget {
           .clearAllEntries(chamberId: chamberId, date: date);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Queue cleared'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(l10n.queueClearedSnack),
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Clear failed: $e')),
+        SnackBar(content: Text(l10n.clearFailedSnack(e.toString()))),
       );
     }
   }
@@ -282,17 +283,16 @@ class _BroadcastDialogState extends State<_BroadcastDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasExisting = widget.currentMessage.isNotEmpty;
     return AlertDialog(
-      title: const Text('Broadcast to patients'),
+      title: Text(l10n.broadcastDialogTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Shown to everyone watching this chamber\'s queue today.',
-            ),
+            Text(l10n.broadcastDialogBody),
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
@@ -301,9 +301,8 @@ class _BroadcastDialogState extends State<_BroadcastDialog> {
               maxLength: 200,
               autofocus: true,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText:
-                    'e.g. Doctor running 30 min late due to traffic',
+              decoration: InputDecoration(
+                hintText: l10n.broadcastHint,
               ),
             ),
           ],
@@ -313,11 +312,11 @@ class _BroadcastDialogState extends State<_BroadcastDialog> {
         if (hasExisting)
           TextButton(
             onPressed: _saving ? null : () => _submit(clear: true),
-            child: const Text('Clear'),
+            child: Text(l10n.clearButton),
           ),
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : () => _submit(clear: false),
@@ -327,7 +326,7 @@ class _BroadcastDialogState extends State<_BroadcastDialog> {
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Send'),
+              : Text(l10n.sendButton),
         ),
       ],
     );
@@ -363,26 +362,27 @@ class _RestoreDialogState extends State<_RestoreDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: Text('Restore #${widget.originalSerial}?'),
+      title: Text(l10n.restoreDialogTitle(widget.originalSerial)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.currentInConsultation != null) ...[
             Text(
-              'In consultation: #${widget.currentInConsultation}',
+              '${l10n.entryInConsultation}: #${widget.currentInConsultation}',
               style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 4),
           ],
           Text(
-            'Last serial in queue: #${widget.maxSerial}',
+            '${l10n.entryDone}: #${widget.maxSerial}',
             style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
-          const Text('Restore at serial:'),
+          Text(l10n.restoreAtSerial),
           const SizedBox(height: 8),
           TextField(
             controller: _controller,
@@ -396,18 +396,18 @@ class _RestoreDialogState extends State<_RestoreDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(widget.originalSerial),
-          child: Text('Original #${widget.originalSerial}'),
+          child: Text(l10n.restoreOriginalChip(widget.originalSerial)),
         ),
         FilledButton(
           onPressed: () {
             final n = int.tryParse(_controller.text.trim());
             if (n != null && n > 0) Navigator.of(context).pop(n);
           },
-          child: const Text('Place'),
+          child: Text(l10n.placeButton),
         ),
       ],
     );
@@ -448,15 +448,18 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add: $e')),
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).addPatientFailedSnack(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Add patient'),
+      title: Text(l10n.addPatientDialogTitle),
       content: Form(
         key: _formKey,
         child: Column(
@@ -467,7 +470,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
               autofocus: true,
               enabled: !_saving,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Patient name'),
+              decoration: InputDecoration(labelText: l10n.patientNameLabel),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
@@ -478,8 +481,8 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
               enabled: !_saving,
               maxLength: 11,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Phone (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.patientPhoneLabel,
                 counterText: '',
               ),
             ),
@@ -489,7 +492,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _submit,
@@ -499,7 +502,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Add'),
+              : Text(l10n.addButton),
         ),
       ],
     );
@@ -540,6 +543,7 @@ class _PendingState extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
@@ -550,23 +554,24 @@ class _PendingState extends ConsumerWidget {
             Icon(Icons.play_circle_outline,
                 size: 80, color: scheme.onSurfaceVariant),
             const SizedBox(height: 16),
-            const Text(
-              "Today's queue hasn't started yet",
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            Text(
+              l10n.queueNotStartedTitle,
+              style:
+                  const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              _isQueueOnly
-                  ? 'Walk-in chamber. Set today\'s token count to start.'
-                  : 'Open the queue to start adding patients.',
+              l10n.queueOpenPrompt,
               textAlign: TextAlign.center,
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 32),
             FilledButton.icon(
               icon: const Icon(Icons.play_arrow),
-              label: Text(_isQueueOnly ? 'Set tokens & open' : 'Open queue'),
+              label: Text(_isQueueOnly
+                  ? l10n.setTokensAndOpen
+                  : l10n.openQueueButton),
               onPressed: () => _openQueue(context, ref),
             ),
           ],
@@ -594,16 +599,14 @@ class _OpenSlotsDialogState extends State<_OpenSlotsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text("Today's tokens"),
+      title: Text(l10n.todaysTokensTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'How many empty token slots should the queue start with? '
-            'Names get filled in as patients arrive.',
-          ),
+          Text(l10n.queueOpenPrompt),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
@@ -611,8 +614,8 @@ class _OpenSlotsDialogState extends State<_OpenSlotsDialog> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             maxLength: 3,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Number of tokens',
+            decoration: InputDecoration(
+              labelText: l10n.numberOfTokensLabel,
               counterText: '',
             ),
           ),
@@ -621,14 +624,14 @@ class _OpenSlotsDialogState extends State<_OpenSlotsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
             final n = int.tryParse(_controller.text.trim());
             if (n != null && n > 0 && n <= 200) Navigator.of(context).pop(n);
           },
-          child: const Text('Open'),
+          child: Text(l10n.openButton),
         ),
       ],
     );
@@ -654,9 +657,11 @@ class _QueueBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
 
+    final l10nLocal = AppLocalizations.of(context);
     return entriesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Failed: $e')),
+      error: (e, _) =>
+          Center(child: Text(l10nLocal.failedShort(e.toString()))),
       data: (entries) {
         final current = entries
             .where((e) => e.status == QueueEntryStatus.inConsultation)
@@ -886,15 +891,18 @@ class _DoctorStatusDialogState extends State<_DoctorStatusDialog> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).failedShort(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Doctor status'),
+      title: Text(l10n.doctorStatusDialogTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -910,7 +918,7 @@ class _DoctorStatusDialogState extends State<_DoctorStatusDialog> {
                 children: DoctorStatus.values
                     .map((s) => RadioListTile<DoctorStatus>(
                           value: s,
-                          title: Text(s.shortLabel),
+                          title: Text(l10n.doctorStatusShort(s)),
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                         ))
@@ -921,9 +929,9 @@ class _DoctorStatusDialogState extends State<_DoctorStatusDialog> {
             TextField(
               controller: _noteController,
               enabled: !_saving,
-              decoration: const InputDecoration(
-                labelText: 'Note (optional)',
-                hintText: 'e.g. Back in 15 min',
+              decoration: InputDecoration(
+                labelText: l10n.noteLabel,
+                hintText: l10n.noteHint,
               ),
               maxLength: 80,
             ),
@@ -933,7 +941,7 @@ class _DoctorStatusDialogState extends State<_DoctorStatusDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _save,
@@ -942,7 +950,7 @@ class _DoctorStatusDialogState extends State<_DoctorStatusDialog> {
                   height: 18,
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Update'),
+              : Text(l10n.updateButton),
         ),
       ],
     );
@@ -979,7 +987,7 @@ class _AdminBroadcastBanner extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'BROADCAST ACTIVE · patients see this',
+                  AppLocalizations.of(context).broadcastActiveLabel,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -999,7 +1007,7 @@ class _AdminBroadcastBanner extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Clear broadcast',
+            tooltip: AppLocalizations.of(context).clearBroadcastTooltip,
             icon: Icon(Icons.close,
                 color: Colors.amber.shade900, size: 18),
             visualDensity: VisualDensity.compact,
@@ -1011,20 +1019,20 @@ class _AdminBroadcastBanner extends ConsumerWidget {
   }
 
   Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Clear broadcast?'),
-        content: const Text(
-            'The message will be removed for all patients.'),
+        title: Text(l10n.clearBroadcastTitle),
+        content: Text(l10n.clearBroadcastBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep'),
+            child: Text(l10n.keepButton),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear'),
+            child: Text(l10n.clearButton),
           ),
         ],
       ),
@@ -1203,7 +1211,9 @@ class _EntryCard extends ConsumerWidget {
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Action failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).actionFailedSnack(e.toString()))),
       );
     }
   }
@@ -1280,7 +1290,8 @@ class _EntryCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    entry.status.displayName,
+                    AppLocalizations.of(context)
+                        .entryStatusDisplay(entry.status),
                     style: TextStyle(
                       fontSize: 11,
                       color: _statusFg(context),
@@ -1310,6 +1321,7 @@ class _EntryCard extends ConsumerWidget {
   }
 
   List<Widget> _actionsFor(BuildContext context, QueueRepository repo) {
+    final l10n = AppLocalizations.of(context);
     final serial = '#${entry.serial}';
     switch (entry.status) {
       case QueueEntryStatus.waiting:
@@ -1318,7 +1330,7 @@ class _EntryCard extends ConsumerWidget {
             Expanded(
               child: FilledButton.tonal(
                 onPressed: () => _showAddDetailsDialog(context, repo),
-                child: const Text('Add patient details'),
+                child: Text(l10n.addPatientDetailsButton),
               ),
             ),
           ];
@@ -1329,10 +1341,10 @@ class _EntryCard extends ConsumerWidget {
               onPressed: () => _safeRun(
                 context,
                 () => _setStatus(repo, QueueEntryStatus.arrived),
-                successMessage: '$serial marked arrived',
+                successMessage: l10n.markedArrivedMsg(serial),
                 undo: () => _setStatus(repo, QueueEntryStatus.waiting),
               ),
-              child: const Text('Mark arrived'),
+              child: Text(l10n.markArrivedButton),
             ),
           ),
           const SizedBox(width: 8),
@@ -1340,10 +1352,10 @@ class _EntryCard extends ConsumerWidget {
             onPressed: () => _safeRun(
               context,
               () => _setStatus(repo, QueueEntryStatus.cancelled),
-              successMessage: '$serial cancelled',
+              successMessage: l10n.cancelledMsg(serial),
               undo: () => _setStatus(repo, QueueEntryStatus.waiting),
             ),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
         ];
       case QueueEntryStatus.arrived:
@@ -1357,9 +1369,9 @@ class _EntryCard extends ConsumerWidget {
                   date: date,
                   entryId: entry.id,
                 ),
-                successMessage: 'Started consultation for $serial',
+                successMessage: l10n.startedConsultationMsg(serial),
               ),
-              child: const Text('Start consultation'),
+              child: Text(l10n.startConsultationButton),
             ),
           ),
           const SizedBox(width: 8),
@@ -1367,10 +1379,10 @@ class _EntryCard extends ConsumerWidget {
             onPressed: () => _safeRun(
               context,
               () => _setStatus(repo, QueueEntryStatus.noShow),
-              successMessage: '$serial marked no-show',
+              successMessage: l10n.markedNoShowMsg(serial),
               undo: () => _setStatus(repo, QueueEntryStatus.arrived),
             ),
-            child: const Text('No-show'),
+            child: Text(l10n.noShowAction),
           ),
         ];
       case QueueEntryStatus.inConsultation:
@@ -1380,10 +1392,10 @@ class _EntryCard extends ConsumerWidget {
               onPressed: () => _safeRun(
                 context,
                 () => _setStatus(repo, QueueEntryStatus.done),
-                successMessage: '$serial done',
+                successMessage: l10n.doneMsg(serial),
                 undo: () => _setStatus(repo, QueueEntryStatus.inConsultation),
               ),
-              child: const Text('Done'),
+              child: Text(l10n.doneAction),
             ),
           ),
         ];
@@ -1395,7 +1407,7 @@ class _EntryCard extends ConsumerWidget {
           TextButton.icon(
             icon: const Icon(Icons.restore, size: 18),
             onPressed: () => _showRestoreDialog(context, repo),
-            label: const Text('Restore'),
+            label: Text(l10n.restoreAction),
           ),
         ];
     }
@@ -1445,15 +1457,18 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).failedShort(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text('Patient #${widget.serial}'),
+      title: Text(l10n.patientSerialDialogTitle(widget.serial)),
       content: Form(
         key: _formKey,
         child: Column(
@@ -1464,7 +1479,7 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
               autofocus: true,
               enabled: !_saving,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Patient name'),
+              decoration: InputDecoration(labelText: l10n.patientNameLabel),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
@@ -1475,8 +1490,8 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
               enabled: !_saving,
               maxLength: 11,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Phone (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.patientPhoneLabel,
                 counterText: '',
               ),
             ),
@@ -1486,7 +1501,7 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _save,
@@ -1496,7 +1511,7 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );

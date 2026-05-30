@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../../shared/widgets/error_state.dart';
 import '../doctor/doctor_profile.dart';
 import '../doctor/doctor_profile_repository.dart';
@@ -22,11 +24,12 @@ class _VerificationQueueScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final doctorsAsync = ref.watch(allDoctorsStreamProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verification queue')),
+      appBar: AppBar(title: Text(l10n.verificationQueueTitle)),
       body: doctorsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorState(
@@ -53,18 +56,19 @@ class _VerificationQueueScreenState
                   children: [
                     Expanded(
                       child: SegmentedButton<_Filter>(
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                               value: _Filter.pending,
-                              label: Text('Pending')),
+                              label: Text(l10n.filterPending)),
                           ButtonSegment(
                               value: _Filter.verified,
-                              label: Text('Verified')),
+                              label: Text(l10n.filterVerified)),
                           ButtonSegment(
                               value: _Filter.rejected,
-                              label: Text('Rejected')),
+                              label: Text(l10n.filterRejected)),
                           ButtonSegment(
-                              value: _Filter.all, label: Text('All')),
+                              value: _Filter.all,
+                              label: Text(l10n.filterAll)),
                         ],
                         selected: {_filter},
                         onSelectionChanged: (s) =>
@@ -87,10 +91,10 @@ class _VerificationQueueScreenState
                           const SizedBox(height: 16),
                           Text(
                             switch (_filter) {
-                              _Filter.pending => 'No doctors awaiting review',
-                              _Filter.verified => 'No verified doctors yet',
-                              _Filter.rejected => 'No rejected doctors',
-                              _Filter.all => 'No doctors in the system',
+                              _Filter.pending => l10n.noDoctorsAwaitingReview,
+                              _Filter.verified => l10n.noVerifiedDoctorsYet,
+                              _Filter.rejected => l10n.noRejectedDoctors,
+                              _Filter.all => l10n.noDoctorsInSystem,
                             },
                             style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w500),
@@ -129,13 +133,18 @@ class _DoctorRow extends ConsumerWidget {
           .read(doctorProfileRepositoryProvider)
           .setVerificationStatus(doctorId: doctor.id, status: s);
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Marked as ${s.displayName}')),
+        SnackBar(
+            content: Text(
+                l10n.markedAsSnack(l10n.verificationDisplay(s)))),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).failedShort(e.toString()))),
       );
     }
   }
@@ -173,7 +182,9 @@ class _DoctorRow extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      doctor.name.isEmpty ? '(no name)' : doctor.name,
+                      doctor.name.isEmpty
+                          ? AppLocalizations.of(context).noNameFallback
+                          : doctor.name,
                       style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w600),
                     ),
@@ -214,8 +225,8 @@ class _DoctorRow extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     doctor.bmdcNumber.isEmpty
-                        ? 'No BMDC number provided'
-                        : 'BMDC: ${doctor.bmdcNumber}',
+                        ? AppLocalizations.of(context).noBmdcProvided
+                        : AppLocalizations.of(context).bmdcLabel(doctor.bmdcNumber),
                     style: const TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 14,
@@ -224,14 +235,15 @@ class _DoctorRow extends ConsumerWidget {
                 ),
                 if (doctor.bmdcNumber.isNotEmpty)
                   IconButton(
-                    tooltip: 'Copy BMDC number',
+                    tooltip: AppLocalizations.of(context).copyBmdcTooltip,
                     icon: const Icon(Icons.copy, size: 16),
                     onPressed: () {
                       Clipboard.setData(
                           ClipboardData(text: doctor.bmdcNumber));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('BMDC number copied')),
+                        SnackBar(
+                            content: Text(AppLocalizations.of(context)
+                                .bmdcCopiedSnack)),
                       );
                     },
                   ),
@@ -255,19 +267,20 @@ class _DoctorRow extends ConsumerWidget {
                 FilledButton.tonal(
                   onPressed: () => _setStatus(
                       context, ref, DoctorVerificationStatus.verified),
-                  child: const Text('Mark verified'),
+                  child: Text(AppLocalizations.of(context).markVerifiedAction),
                 ),
               if (!isRejected)
                 OutlinedButton(
                   onPressed: () => _setStatus(
                       context, ref, DoctorVerificationStatus.rejected),
-                  child: const Text('Reject'),
+                  child: Text(AppLocalizations.of(context).rejectAction),
                 ),
               if (!isPending)
                 TextButton(
                   onPressed: () => _setStatus(
                       context, ref, DoctorVerificationStatus.pending),
-                  child: const Text('Reset to pending'),
+                  child: Text(
+                      AppLocalizations.of(context).resetToPendingAction),
                 ),
             ],
           ),

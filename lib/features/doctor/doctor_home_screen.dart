@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../../shared/widgets/loading_overlay.dart';
 import '../auth/current_user.dart';
 import '../auth/user_role_enrollment.dart';
@@ -20,27 +22,27 @@ class DoctorHomeScreen extends ConsumerWidget {
   const DoctorHomeScreen({super.key});
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-            'You will need to sign in again to manage your chambers.'),
+        title: Text(l10n.signOutDialogTitle),
+        content: Text(l10n.signOutDialogBodyDoctor),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Stay'),
+            child: Text(l10n.stay),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sign out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
     if (!context.mounted) return;
-    LoadingOverlay.show(context, 'Signing you out…');
+    LoadingOverlay.show(context, l10n.signingOut);
     await signOutDoctor();
     ref.invalidate(userRoleEnrollmentProvider);
     if (!context.mounted) return;
@@ -51,16 +53,17 @@ class DoctorHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final profileAsync =
         ref.watch(doctorProfileStreamProvider(currentDoctorId()));
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Doctor'),
+        title: Text(l10n.doctorAppBarTitle),
         actions: [
           IconButton(
-            tooltip: 'Sign out',
+            tooltip: l10n.signOut,
             icon: const Icon(Icons.logout),
             onPressed: () => _confirmSignOut(context, ref),
           ),
@@ -71,7 +74,7 @@ class DoctorHomeScreen extends ConsumerWidget {
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Failed to load profile:\n$e',
+            child: Text(l10n.loadProfileFailed(e.toString()),
                 textAlign: TextAlign.center),
           ),
         ),
@@ -83,13 +86,14 @@ class DoctorHomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (!hasProfile) ...[
-                  const Text(
-                    'Welcome!',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                  Text(
+                    l10n.doctorWelcome,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Set up your profile so patients can find you.',
+                    l10n.doctorWelcomePrompt,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 ] else ...[
@@ -114,7 +118,7 @@ class DoctorHomeScreen extends ConsumerWidget {
                   if (profile.yearsOfExperience > 0) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '${profile.yearsOfExperience} years of experience',
+                      l10n.yearsOfExperience(profile.yearsOfExperience),
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                   ],
@@ -124,13 +128,14 @@ class DoctorHomeScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   icon: const Icon(Icons.edit),
-                  label: Text(hasProfile ? 'Edit profile' : 'Create profile'),
+                  label: Text(
+                      hasProfile ? l10n.editProfile : l10n.createProfile),
                   onPressed: () => context.push('/doctor/profile'),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.local_hospital_outlined),
-                  label: const Text('Manage chambers'),
+                  label: Text(l10n.manageChambers),
                   onPressed: () => context.push('/doctor/chambers'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
@@ -209,7 +214,9 @@ class _TodayStatusSection extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Today: ${doc.status.displayName}',
+                      AppLocalizations.of(context).todayStatusLabel(
+                          AppLocalizations.of(context)
+                              .dayStatusDisplay(doc.status)),
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -254,9 +261,10 @@ class _ManageQueueSection extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Text(
-                "Today's queues",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              Text(
+                AppLocalizations.of(context).todaysQueuesSection,
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(width: 8),
               Container(
@@ -297,6 +305,7 @@ class _DoctorChamberCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final dateKey = todayDateKey();
     final queueAsync =
@@ -327,19 +336,19 @@ class _DoctorChamberCard extends ConsumerWidget {
           scheme.surfaceContainerHigh,
           scheme.onSurfaceVariant,
           Icons.schedule_outlined,
-          'Not opened',
+          l10n.queueBadgeNotOpened,
         ),
       QueueStatus.open => (
           Colors.green.shade100,
           Colors.green.shade900,
           Icons.circle,
-          'Live',
+          l10n.queueBadgeLive,
         ),
       QueueStatus.closed => (
           scheme.errorContainer,
           scheme.onErrorContainer,
           Icons.lock_outline,
-          'Closed',
+          l10n.queueBadgeClosed,
         ),
     };
 
@@ -413,7 +422,7 @@ class _DoctorChamberCard extends ConsumerWidget {
                         size: 13, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
-                      'Closed today',
+                      l10n.chamberClosedToday,
                       style: TextStyle(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
@@ -436,7 +445,7 @@ class _DoctorChamberCard extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: _DoctorStat(
-                          label: 'Now seeing',
+                          label: l10n.nowSeeing,
                           value: currentSerial > 0 ? '#$currentSerial' : '—',
                           highlight: currentSerial > 0,
                         ),
@@ -444,14 +453,14 @@ class _DoctorChamberCard extends ConsumerWidget {
                       _StatDivider(color: scheme.outlineVariant),
                       Expanded(
                         child: _DoctorStat(
-                          label: 'Waiting',
+                          label: l10n.waiting,
                           value: '${waitingCount + arrivedCount}',
                         ),
                       ),
                       _StatDivider(color: scheme.outlineVariant),
                       Expanded(
                         child: _DoctorStat(
-                          label: 'Done',
+                          label: l10n.done,
                           value: '$completed',
                         ),
                       ),
@@ -466,7 +475,7 @@ class _DoctorChamberCard extends ConsumerWidget {
                           size: 13, color: scheme.primary),
                       const SizedBox(width: 6),
                       Text(
-                        'Patients are waiting — tap to start',
+                        l10n.patientsWaitingPrompt,
                         style: TextStyle(
                             fontSize: 12,
                             color: scheme.primary,

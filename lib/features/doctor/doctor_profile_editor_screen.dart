@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../auth/current_user.dart';
 import 'doctor_photo_service.dart';
 import 'doctor_profile.dart';
@@ -74,13 +75,17 @@ class _DoctorProfileEditorScreenState
         _uploadingPhoto = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo updated — save to keep it')),
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).photoUpdatedSnack)),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _uploadingPhoto = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not load image: $e')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .couldNotLoadImageSnack(e.toString()))),
       );
     }
   }
@@ -90,6 +95,7 @@ class _DoctorProfileEditorScreenState
   }
 
   Future<void> _showPhotoSheet() async {
+    final l10n = AppLocalizations.of(context);
     final source = await showModalBottomSheet<_PhotoAction>(
       context: context,
       builder: (sheetContext) => SafeArea(
@@ -98,13 +104,13 @@ class _DoctorProfileEditorScreenState
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take a photo'),
+              title: Text(l10n.takeAPhoto),
               onTap: () =>
                   Navigator.of(sheetContext).pop(_PhotoAction.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: Text(l10n.chooseFromGallery),
               onTap: () =>
                   Navigator.of(sheetContext).pop(_PhotoAction.gallery),
             ),
@@ -112,7 +118,7 @@ class _DoctorProfileEditorScreenState
               ListTile(
                 leading: Icon(Icons.delete_outline,
                     color: Theme.of(sheetContext).colorScheme.error),
-                title: Text('Remove photo',
+                title: Text(l10n.removePhoto,
                     style: TextStyle(
                         color: Theme.of(sheetContext).colorScheme.error)),
                 onTap: () =>
@@ -147,7 +153,9 @@ class _DoctorProfileEditorScreenState
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSpecialties.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one specialty')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).selectAtLeastOneSpecialty)),
       );
       return;
     }
@@ -169,29 +177,34 @@ class _DoctorProfileEditorScreenState
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved')),
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).profileSavedSnack)),
       );
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).saveFailedSnack(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (!_loaded) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Edit Profile')),
+        appBar: AppBar(title: Text(l10n.editProfileTitle)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profile')),
+      appBar: AppBar(title: Text(l10n.editProfileTitle)),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -220,7 +233,7 @@ class _DoctorProfileEditorScreenState
                         icon: Icon(Icons.camera_alt,
                             color: scheme.onPrimary, size: 18),
                         onPressed: _uploadingPhoto ? null : _showPhotoSheet,
-                        tooltip: 'Update photo',
+                        tooltip: l10n.updatePhotoTooltip,
                       ),
                     ),
                   ],
@@ -229,38 +242,38 @@ class _DoctorProfileEditorScreenState
               const SizedBox(height: 24),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full name',
-                  hintText: 'Dr. Md. Karim Ahmed',
+                decoration: InputDecoration(
+                  labelText: l10n.fullNameLabel,
+                  hintText: l10n.fullNameHint,
                 ),
                 textCapitalization: TextCapitalization.words,
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    (v == null || v.trim().isEmpty) ? l10n.requiredField : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _bmdcController,
-                decoration: const InputDecoration(
-                  labelText: 'BMDC registration number',
-                  hintText: 'A-12345',
+                decoration: InputDecoration(
+                  labelText: l10n.bmdcRegistrationLabel,
+                  hintText: l10n.bmdcRegistrationHint,
                 ),
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    (v == null || v.trim().isEmpty) ? l10n.requiredField : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _qualificationsController,
-                decoration: const InputDecoration(
-                  labelText: 'Qualifications',
-                  hintText: 'MBBS, FCPS (Cardiology)',
+                decoration: InputDecoration(
+                  labelText: l10n.qualificationsLabel,
+                  hintText: l10n.qualificationsHint,
                 ),
                 maxLines: 2,
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    (v == null || v.trim().isEmpty) ? l10n.requiredField : null,
               ),
               const SizedBox(height: 24),
-              const Text('Specialties',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.specialtiesSection,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -283,8 +296,8 @@ class _DoctorProfileEditorScreenState
                 }).toList(),
               ),
               const SizedBox(height: 24),
-              const Text('Languages spoken',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.languagesSpokenSection,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -309,8 +322,8 @@ class _DoctorProfileEditorScreenState
               const SizedBox(height: 24),
               TextFormField(
                 controller: _yearsController,
-                decoration: const InputDecoration(
-                  labelText: 'Years of experience',
+                decoration: InputDecoration(
+                  labelText: l10n.yearsOfExperienceLabel,
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -318,9 +331,9 @@ class _DoctorProfileEditorScreenState
               const SizedBox(height: 16),
               TextFormField(
                 controller: _bioController,
-                decoration: const InputDecoration(
-                  labelText: 'Bio',
-                  hintText: 'A short introduction patients will see',
+                decoration: InputDecoration(
+                  labelText: l10n.bioLabel,
+                  hintText: l10n.bioHint,
                 ),
                 maxLines: 4,
               ),
@@ -333,7 +346,7 @@ class _DoctorProfileEditorScreenState
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save profile'),
+                    : Text(l10n.saveProfileButton),
               ),
             ],
           ),

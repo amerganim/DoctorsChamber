@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../auth/current_user.dart';
 import 'chamber.dart';
 import 'chamber_repository.dart';
@@ -85,7 +87,9 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDays.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one day')),
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).selectAtLeastOneDay)),
       );
       return;
     }
@@ -118,16 +122,19 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).saveFailedSnack(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Chamber' : 'Add Chamber'),
+        title: Text(_isEditing ? l10n.editChamberTitle : l10n.addChamberTitle),
       ),
       body: SafeArea(
         child: Form(
@@ -137,28 +144,28 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Chamber name',
-                  hintText: 'Popular Diagnostic Centre, Dhanmondi',
+                decoration: InputDecoration(
+                  labelText: l10n.chamberNameLabel,
+                  hintText: l10n.chamberNameHint,
                 ),
                 textCapitalization: TextCapitalization.words,
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    (v == null || v.trim().isEmpty) ? l10n.requiredField : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _addressController,
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  hintText: 'House 25, Road 2, Dhanmondi, Dhaka',
+                decoration: InputDecoration(
+                  labelText: l10n.chamberAddressLabel,
+                  hintText: l10n.chamberAddressHint,
                 ),
                 maxLines: 2,
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    (v == null || v.trim().isEmpty) ? l10n.requiredField : null,
               ),
               const SizedBox(height: 24),
-              const Text('Open days',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.openDaysSection,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -180,15 +187,16 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
                 }).toList(),
               ),
               const SizedBox(height: 24),
-              const Text('Hours',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.hoursSection,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.access_time),
-                      label: Text('Start: ${_formatTime(_startTime)}'),
+                      label: Text(
+                          l10n.startTimePrefix(_formatTime(_startTime))),
                       onPressed: _pickStart,
                     ),
                   ),
@@ -196,7 +204,7 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.access_time),
-                      label: Text('End: ${_formatTime(_endTime)}'),
+                      label: Text(l10n.endTimePrefix(_formatTime(_endTime))),
                       onPressed: _pickEnd,
                     ),
                   ),
@@ -205,21 +213,21 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
               const SizedBox(height: 24),
               TextFormField(
                 controller: _feeController,
-                decoration: const InputDecoration(
-                  labelText: 'Consultation fee (BDT)',
+                decoration: InputDecoration(
+                  labelText: l10n.consultationFeeBdt,
                   prefixText: '৳ ',
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (v) {
                   final n = int.tryParse(v?.trim() ?? '');
-                  if (n == null || n <= 0) return 'Enter a fee';
+                  if (n == null || n <= 0) return l10n.requiredField;
                   return null;
                 },
               ),
               const SizedBox(height: 24),
-              const Text('Booking mode',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.bookingModeSection,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               RadioGroup<ChamberBookingMode>(
                 groupValue: _bookingMode,
@@ -229,8 +237,8 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
                       .map(
                         (mode) => RadioListTile<ChamberBookingMode>(
                           value: mode,
-                          title: Text(mode.displayName),
-                          subtitle: Text(mode.description),
+                          title: Text(l10n.bookingModeDisplay(mode)),
+                          subtitle: Text(l10n.bookingModeDescription(mode)),
                           contentPadding: EdgeInsets.zero,
                         ),
                       )
@@ -241,10 +249,9 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _capController,
-                  decoration: const InputDecoration(
-                    labelText: 'Daily app booking cap',
-                    helperText:
-                        'Max patients who can book via app per day. Rest are walk-in.',
+                  decoration: InputDecoration(
+                    labelText: l10n.dailyAppCapLabel,
+                    helperText: l10n.dailyAppCapHelper,
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -253,7 +260,7 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
                       return null;
                     }
                     final n = int.tryParse(v?.trim() ?? '');
-                    if (n == null || n <= 0) return 'Enter a cap';
+                    if (n == null || n <= 0) return l10n.requiredField;
                     return null;
                   },
                 ),
@@ -267,7 +274,9 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(_isEditing ? 'Save changes' : 'Save chamber'),
+                    : Text(_isEditing
+                        ? l10n.saveChangesButton
+                        : l10n.saveChamberButton),
               ),
             ],
           ),

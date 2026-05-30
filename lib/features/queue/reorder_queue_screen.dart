@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'queue.dart';
 import 'queue_repository.dart';
 
@@ -89,22 +90,25 @@ class _ReorderQueueScreenState extends ConsumerState<ReorderQueueScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).saveFailedSnack(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reorder queue'),
+        title: Text(l10n.reorderQueueTitle),
         actions: [
           TextButton(
             onPressed: _changed && !_saving ? _save : null,
-            child: Text(_saving ? 'Saving…' : 'Save'),
+            child: Text(_saving ? l10n.savingEllipsis : l10n.save),
           ),
         ],
       ),
@@ -114,7 +118,7 @@ class _ReorderQueueScreenState extends ConsumerState<ReorderQueueScreen> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('Failed to load:\n$_error',
+                    child: Text(l10n.failedToLoadGeneric(_error ?? ''),
                         textAlign: TextAlign.center),
                   ),
                 )
@@ -128,9 +132,9 @@ class _ReorderQueueScreenState extends ConsumerState<ReorderQueueScreen> {
                             Icon(Icons.queue_outlined,
                                 size: 64, color: scheme.onSurfaceVariant),
                             const SizedBox(height: 16),
-                            const Text(
-                              'No waiting patients to reorder',
-                              style: TextStyle(
+                            Text(
+                              l10n.noWaitingToReorder,
+                              style: const TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w600),
                             ),
@@ -145,8 +149,7 @@ class _ReorderQueueScreenState extends ConsumerState<ReorderQueueScreen> {
                           padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                           color: scheme.surfaceContainerHighest,
                           child: Text(
-                            'Drag patients to change order. Serial numbers are '
-                            'reassigned by position when you Save.',
+                            l10n.reorderHint,
                             style: TextStyle(
                                 fontSize: 12, color: scheme.onSurfaceVariant),
                           ),

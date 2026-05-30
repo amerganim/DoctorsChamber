@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../../shared/widgets/error_state.dart';
 import '../admin_invitations/manage_admins_screen.dart';
 import '../auth/current_user.dart';
@@ -13,12 +14,13 @@ class ChambersListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final asyncChambers =
         ref.watch(chambersByDoctorStreamProvider(currentDoctorId()));
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Chambers')),
+      appBar: AppBar(title: Text(l10n.myChambersTitle)),
       body: asyncChambers.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorState(
@@ -37,14 +39,14 @@ class ChambersListScreen extends ConsumerWidget {
                     Icon(Icons.local_hospital_outlined,
                         size: 64, color: scheme.onSurfaceVariant),
                     const SizedBox(height: 16),
-                    const Text(
-                      'No chambers yet',
-                      style: TextStyle(
+                    Text(
+                      l10n.noChambersYet,
+                      style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Add a chamber so patients can find you and book serials.',
+                      l10n.noChambersYetHint,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
@@ -64,7 +66,7 @@ class ChambersListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/doctor/chambers/new'),
         icon: const Icon(Icons.add),
-        label: const Text('Add chamber'),
+        label: Text(l10n.addChamberFab),
       ),
     );
   }
@@ -97,7 +99,7 @@ class _ChamberCard extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Edit',
+                  tooltip: AppLocalizations.of(context).editChamberTooltip,
                   onPressed: () => context.push(
                     '/doctor/chambers/edit',
                     extra: chamber,
@@ -105,7 +107,7 @@ class _ChamberCard extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Delete',
+                  tooltip: AppLocalizations.of(context).deleteChamberTooltip,
                   onPressed: () => _confirmDelete(context, ref),
                 ),
               ],
@@ -155,7 +157,7 @@ class _ChamberCard extends ConsumerWidget {
                 ),
                 const Spacer(),
                 IconButton(
-                  tooltip: 'Manage chamber admins',
+                  tooltip: AppLocalizations.of(context).manageAdminsTooltip,
                   icon:
                       const Icon(Icons.group_outlined, size: 20),
                   onPressed: () => Navigator.of(context).push(
@@ -174,20 +176,20 @@ class _ChamberCard extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete chamber?'),
-        content: Text(
-            '"${chamber.name}" will be removed. This cannot be undone.'),
+        title: Text(l10n.deleteChamberTitle),
+        content: Text(l10n.deleteChamberBody(chamber.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

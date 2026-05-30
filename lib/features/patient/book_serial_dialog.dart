@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../auth/current_user.dart';
 import '../chambers/chamber.dart';
 import '../queue/queue_repository.dart';
@@ -60,9 +61,10 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: Text('Book serial · ${widget.chamber.name}'),
+      title: Text(l10n.bookSerialDialogTitle(widget.chamber.name)),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -71,7 +73,7 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Today, ${todayWeekday()}',
+                todayWeekday(),
                 style:
                     TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
@@ -81,9 +83,10 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
                 autofocus: true,
                 enabled: !_saving,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Patient name'),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                decoration: InputDecoration(labelText: l10n.patientNameLabel),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? l10n.requiredField
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -92,12 +95,13 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
                 enabled: !_saving,
                 maxLength: 11,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
+                decoration: InputDecoration(
+                  labelText: l10n.phoneLabel,
                   counterText: '',
                 ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? l10n.requiredField
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -106,8 +110,8 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
                 enabled: !_saving,
                 maxLength: 3,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Age (optional)',
+                decoration: InputDecoration(
+                  labelText: l10n.ageOptionalLabel,
                   counterText: '',
                 ),
               ),
@@ -125,7 +129,7 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _submit,
@@ -135,7 +139,7 @@ class _BookSerialDialogState extends ConsumerState<BookSerialDialog> {
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Book'),
+              : Text(l10n.bookAction),
         ),
       ],
     );

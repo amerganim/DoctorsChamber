@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
 import '../doctor/doctor_day_status.dart';
@@ -24,23 +26,25 @@ class PatientDoctorViewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final profileAsync = ref.watch(doctorProfileStreamProvider(doctorId));
     final chambersAsync = ref.watch(chambersByDoctorStreamProvider(doctorId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Doctor')),
+      appBar: AppBar(title: Text(l10n.doctorScreenTitle)),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) =>
-            Center(child: Text('Failed to load: $e', textAlign: TextAlign.center)),
+        error: (e, _) => Center(
+            child: Text(l10n.loadFailed(e.toString()),
+                textAlign: TextAlign.center)),
         data: (doctor) {
           if (doctor == null) {
-            return const Center(child: Text('Doctor not found'));
+            return Center(child: Text(l10n.doctorNotFound));
           }
           return chambersAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) =>
-                Center(child: Text('Failed to load chambers: $e')),
+                Center(child: Text(l10n.loadChambersFailed(e.toString()))),
             data: (chambers) => _DoctorDetail(doctor: doctor, chambers: chambers),
           );
         },
@@ -57,6 +61,7 @@ class _DoctorDetail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final today = todayWeekday();
     final summary = ref.watch(ratingSummaryProvider(doctor.id));
@@ -120,7 +125,7 @@ class _DoctorDetail extends ConsumerWidget {
                   if (doctor.yearsOfExperience > 0) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '${doctor.yearsOfExperience} years of experience',
+                      l10n.yearsOfExperience(doctor.yearsOfExperience),
                       style: TextStyle(
                           fontSize: 13, color: scheme.onSurfaceVariant),
                     ),
@@ -137,7 +142,7 @@ class _DoctorDetail extends ConsumerWidget {
               Icon(Icons.verified_outlined,
                   size: 16, color: scheme.onSurfaceVariant),
               const SizedBox(width: 6),
-              Text('BMDC: ${doctor.bmdcNumber}',
+              Text(l10n.bmdcLabel(doctor.bmdcNumber),
                   style: TextStyle(
                       fontSize: 13, color: scheme.onSurfaceVariant)),
             ],
@@ -152,8 +157,9 @@ class _DoctorDetail extends ConsumerWidget {
             const SizedBox(width: 6),
             Text(
               summary.count == 0
-                  ? 'No reviews yet'
-                  : '${summary.average.toStringAsFixed(1)} · ${summary.count} review${summary.count == 1 ? '' : 's'}',
+                  ? l10n.noReviewsYet
+                  : l10n.reviewsCount(
+                      summary.average.toStringAsFixed(1), summary.count),
               style: TextStyle(
                   fontSize: 13,
                   color: scheme.onSurfaceVariant,
@@ -162,22 +168,24 @@ class _DoctorDetail extends ConsumerWidget {
             const Spacer(),
             TextButton.icon(
               icon: const Icon(Icons.star_outline, size: 18),
-              label: const Text('Rate'),
+              label: Text(l10n.rateAction),
               onPressed: () => _showRate(context),
             ),
           ],
         ),
         if (doctor.bio.isNotEmpty) ...[
           const SizedBox(height: 24),
-          const Text('About',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(l10n.aboutSection,
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text(doctor.bio, style: const TextStyle(height: 1.4)),
         ],
         if (doctor.languages.isNotEmpty) ...[
           const SizedBox(height: 24),
-          const Text('Languages',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(l10n.languagesSection,
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -189,8 +197,9 @@ class _DoctorDetail extends ConsumerWidget {
         ],
         if (ratings.isNotEmpty) ...[
           const SizedBox(height: 24),
-          const Text('Recent reviews',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(l10n.recentReviewsSection,
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           ...ratings.take(5).map(
                 (r) => Padding(
@@ -200,12 +209,13 @@ class _DoctorDetail extends ConsumerWidget {
               ),
         ],
         const SizedBox(height: 24),
-        const Text('Chambers',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        Text(l10n.chambersSection,
+            style:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         if (chambers.isEmpty)
           Text(
-            'No chambers listed yet.',
+            l10n.noChambersListed,
             style: TextStyle(color: scheme.onSurfaceVariant),
           )
         else
@@ -226,7 +236,9 @@ class _DoctorDetail extends ConsumerWidget {
     );
     if (ok == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thanks for your rating!')),
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).thanksForRating)),
       );
     }
   }
@@ -336,13 +348,18 @@ class _ChamberTile extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           queue?.status == QueueStatus.closed
-                              ? 'Closed for today'
+                              ? AppLocalizations.of(context)
+                                  .queueClosedForToday
                               : (queue == null ||
                                       queue.status == QueueStatus.pending)
                                   ? (openToday
-                                      ? 'Queue not yet open today'
-                                      : 'Closed today')
-                                  : queue.doctorStatus.displayName,
+                                      ? AppLocalizations.of(context)
+                                          .queueNotYetOpen
+                                      : AppLocalizations.of(context)
+                                          .queueClosedSimple)
+                                  : AppLocalizations.of(context)
+                                      .doctorStatusDisplay(
+                                          queue.doctorStatus),
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: queue?.status == QueueStatus.closed
@@ -379,8 +396,10 @@ class _ChamberTile extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             inConsultation == null
-                                ? 'No active consultation'
-                                : 'Now serving: #${inConsultation.serial}',
+                                ? AppLocalizations.of(context)
+                                    .noActiveConsultation
+                                : AppLocalizations.of(context)
+                                    .nowServingSerial(inConsultation.serial),
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -397,7 +416,8 @@ class _ChamberTile extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '$waitingCount waiting',
+                            AppLocalizations.of(context)
+                                .waitingCount(waitingCount),
                             style: TextStyle(
                                 fontSize: 11,
                                 color: scheme.onSurfaceVariant,
@@ -436,7 +456,7 @@ class _VerificationLine extends StatelessWidget {
         Icon(status.icon, size: 16, color: color),
         const SizedBox(width: 6),
         Text(
-          status.displayName,
+          AppLocalizations.of(context).verificationDisplay(status),
           style: TextStyle(
               fontSize: 13, color: color, fontWeight: FontWeight.w500),
         ),
@@ -476,7 +496,8 @@ class _DoctorDayStatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  status.status.displayName,
+                  AppLocalizations.of(context)
+                      .dayStatusDisplay(status.status),
                   style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -548,8 +569,9 @@ class _BookingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final (label, bg, fg) = _resolve(scheme);
+    final (label, bg, fg) = _resolve(l10n, scheme);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -567,38 +589,38 @@ class _BookingBadge extends StatelessWidget {
     );
   }
 
-  (String, Color, Color) _resolve(ColorScheme scheme) {
+  (String, Color, Color) _resolve(
+      AppLocalizations l10n, ColorScheme scheme) {
     if (!openToday) {
       return (
-        'Closed today',
+        l10n.bookingBadgeClosedToday,
         scheme.surfaceContainerHigh,
         scheme.onSurfaceVariant,
       );
     }
     if (queueStatus == QueueStatus.closed) {
       return (
-        'Closed for today',
+        l10n.bookingBadgeClosedForToday,
         scheme.errorContainer,
         scheme.onErrorContainer,
       );
     }
     if (mode == ChamberBookingMode.queueOnly) {
       return (
-        'Walk-in only',
+        l10n.bookingBadgeWalkIn,
         scheme.surfaceContainerHigh,
         scheme.onSurfaceVariant,
       );
     }
     if (queueStatus == QueueStatus.open) {
       return (
-        'Book a serial',
+        l10n.bookingBadgeBook,
         scheme.primary,
         scheme.onPrimary,
       );
     }
-    // Pending — chamber day today but queue not opened yet.
     return (
-      'Opens later',
+      l10n.bookingBadgeOpensLater,
       scheme.surfaceContainerHigh,
       scheme.onSurfaceVariant,
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../auth/current_user.dart';
 import '../doctor/doctor_profile_repository.dart';
 import 'invitation_repository.dart';
@@ -53,16 +54,17 @@ class _InviteAdminDialogState extends ConsumerState<InviteAdminDialog> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Failed: $e';
+        _error = AppLocalizations.of(context).failedPrefix(e.toString());
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: const Text('Invite chamber admin'),
+      title: Text(l10n.inviteAdminTitle),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -70,10 +72,7 @@ class _InviteAdminDialogState extends ConsumerState<InviteAdminDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Enter the admin\'s Google email. They sign in with the same '
-                'email to accept and start managing this chamber.',
-              ),
+              Text(l10n.noAdminsHint),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _emailController,
@@ -81,15 +80,15 @@ class _InviteAdminDialogState extends ConsumerState<InviteAdminDialog> {
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  labelText: 'Admin email',
-                  hintText: 'admin@gmail.com',
+                decoration: InputDecoration(
+                  labelText: l10n.adminEmailLabel,
+                  hintText: l10n.adminEmailHint,
                 ),
                 validator: (v) {
                   final t = v?.trim() ?? '';
-                  if (t.isEmpty) return 'Required';
+                  if (t.isEmpty) return l10n.requiredField;
                   if (!t.contains('@') || !t.contains('.')) {
-                    return 'Not a valid email';
+                    return l10n.requiredField;
                   }
                   return null;
                 },
@@ -109,7 +108,7 @@ class _InviteAdminDialogState extends ConsumerState<InviteAdminDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _submit,
@@ -119,7 +118,7 @@ class _InviteAdminDialogState extends ConsumerState<InviteAdminDialog> {
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Invite'),
+              : Text(l10n.inviteAction),
         ),
       ],
     );

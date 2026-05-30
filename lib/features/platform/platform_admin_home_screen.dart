@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import 'platform_config.dart';
 
 class PlatformAdminHomeScreen extends StatelessWidget {
@@ -12,13 +13,14 @@ class PlatformAdminHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(title: const Text('Platform admin')),
+      appBar: AppBar(title: Text(l10n.platformAdminScreenTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const _SectionLabel(text: 'Operations'),
+          _SectionLabel(text: l10n.operationsSection),
           const SizedBox(height: 8),
           Material(
             color: scheme.surfaceContainerHighest,
@@ -26,14 +28,14 @@ class PlatformAdminHomeScreen extends StatelessWidget {
             child: ListTile(
               leading: Icon(Icons.verified_user_outlined,
                   color: scheme.primary),
-              title: const Text('Verification queue'),
-              subtitle: const Text('Review BMDC numbers and approve doctors'),
+              title: Text(l10n.verificationQueueCard),
+              subtitle: Text(l10n.verificationQueueCardSub),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/platform/verification'),
             ),
           ),
           const SizedBox(height: 24),
-          const _SectionLabel(text: 'Data retention'),
+          _SectionLabel(text: l10n.dataRetentionSection),
           const SizedBox(height: 8),
           const _RetentionCard(),
         ],
@@ -106,14 +108,15 @@ class _RetentionCardState extends ConsumerState<_RetentionCard> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final raw = _controller.text.trim();
     final parsed = int.tryParse(raw);
     if (parsed == null || parsed <= 0) {
-      setState(() => _error = 'Enter a positive number of days.');
+      setState(() => _error = l10n.enterPositiveDays);
       return;
     }
     if (parsed > 3650) {
-      setState(() => _error = 'Use 3650 days or fewer.');
+      setState(() => _error = l10n.use3650OrFewer);
       return;
     }
     setState(() {
@@ -126,11 +129,11 @@ class _RetentionCardState extends ConsumerState<_RetentionCard> {
           .setRetentionDays(parsed);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Retention set to $parsed days')),
+        SnackBar(content: Text(l10n.retentionSetSnack(parsed))),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Failed: $e');
+      setState(() => _error = l10n.failedPrefix(e.toString()));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -138,6 +141,7 @@ class _RetentionCardState extends ConsumerState<_RetentionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -148,15 +152,14 @@ class _RetentionCardState extends ConsumerState<_RetentionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Queue auto-delete window',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          Text(
+            l10n.queueAutoDeleteWindow,
+            style: const TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
-            'New queues and entries expire after this many days. The app '
-            'sweeps expired data when a doctor or admin opens their home '
-            'screen. Existing docs keep their original expiry.',
+            l10n.queueAutoDeleteDescription,
             style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
@@ -173,10 +176,10 @@ class _RetentionCardState extends ConsumerState<_RetentionCard> {
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(5),
                   ],
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
                     isDense: true,
-                    suffixText: 'days',
+                    suffixText: l10n.daysSuffix,
                   ),
                 ),
               ),
@@ -189,7 +192,7 @@ class _RetentionCardState extends ConsumerState<_RetentionCard> {
                         width: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save'),
+                    : Text(l10n.save),
               ),
             ],
           ),
@@ -204,7 +207,7 @@ class _RetentionCardState extends ConsumerState<_RetentionCard> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Loading current setting…',
+                  l10n.loadingCurrentSetting,
                   style: TextStyle(
                       fontSize: 12, color: scheme.onSurfaceVariant),
                 ),
