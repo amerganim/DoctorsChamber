@@ -78,7 +78,7 @@ class DoctorHomeScreen extends ConsumerWidget {
         data: (profile) {
           final hasProfile = profile != null && profile.name.isNotEmpty;
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 80),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
