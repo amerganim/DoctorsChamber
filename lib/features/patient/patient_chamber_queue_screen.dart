@@ -116,15 +116,22 @@ class _Body extends ConsumerWidget {
         .toList();
     final completed = entries.where((e) => !e.status.isActive).toList();
 
+    final isClosed = queue!.status == QueueStatus.closed;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        _StatusBanner(queue: queue!),
-        if (queue!.broadcastMessage.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _BroadcastBanner(message: queue!.broadcastMessage),
+        if (isClosed) ...[
+          _ClosedBanner(closedAt: queue!.closedAt),
+          const SizedBox(height: 16),
+        ] else ...[
+          _StatusBanner(queue: queue!),
+          if (queue!.broadcastMessage.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _BroadcastBanner(message: queue!.broadcastMessage),
+          ],
+          const SizedBox(height: 16),
         ],
-        const SizedBox(height: 16),
         if (ownBooking != null) ...[
           _OwnBookingBanner(
             booking: ownBooking!,
@@ -740,6 +747,57 @@ class _Centered extends StatelessWidget {
             title,
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClosedBanner extends StatelessWidget {
+  const _ClosedBanner({required this.closedAt});
+
+  final DateTime? closedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lock_outline, color: scheme.onErrorContainer),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Closed for today',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onErrorContainer,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  closedAt != null
+                      ? 'The doctor wrapped up at ${formatTime12h(closedAt!)}. '
+                          'New bookings will open on the next chamber day.'
+                      : 'No new bookings are being accepted. '
+                          'Please check back on the next chamber day.',
+                  style: TextStyle(
+                      fontSize: 13, color: scheme.onErrorContainer),
+                ),
+              ],
+            ),
           ),
         ],
       ),

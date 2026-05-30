@@ -69,7 +69,7 @@ class _DoctorDetail extends ConsumerWidget {
         .value;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
       children: [
         if (dayStatus != null && !dayStatus.isAvailable) ...[
           _DoctorDayStatusBanner(status: dayStatus),
@@ -301,20 +301,10 @@ class _ChamberTile extends ConsumerWidget {
                       fontWeight: FontWeight.w600, color: scheme.primary),
                 ),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    chamber.bookingMode.displayName,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: scheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                _BookingBadge(
+                  mode: chamber.bookingMode,
+                  queueStatus: queue?.status,
+                  openToday: openToday,
                 ),
               ],
             ),
@@ -332,25 +322,35 @@ class _ChamberTile extends ConsumerWidget {
                   Row(
                     children: [
                       Icon(
-                        queue?.status == QueueStatus.open
-                            ? queue!.doctorStatus.icon
-                            : Icons.people_outline,
+                        queue?.status == QueueStatus.closed
+                            ? Icons.lock_outline
+                            : queue?.status == QueueStatus.open
+                                ? queue!.doctorStatus.icon
+                                : Icons.people_outline,
                         size: 16,
-                        color: scheme.onSurfaceVariant,
+                        color: queue?.status == QueueStatus.closed
+                            ? scheme.error
+                            : scheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          queue == null ||
-                                  queue.status == QueueStatus.pending
-                              ? (openToday
-                                  ? 'Queue not yet open today'
-                                  : 'Closed today')
-                              : queue.doctorStatus.displayName,
+                          queue?.status == QueueStatus.closed
+                              ? 'Closed for today'
+                              : (queue == null ||
+                                      queue.status == QueueStatus.pending)
+                                  ? (openToday
+                                      ? 'Queue not yet open today'
+                                      : 'Closed today')
+                                  : queue.doctorStatus.displayName,
                           style: TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: scheme.onSurfaceVariant),
+                              fontWeight: queue?.status == QueueStatus.closed
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: queue?.status == QueueStatus.closed
+                                  ? scheme.error
+                                  : scheme.onSurfaceVariant),
                         ),
                       ),
                     ],
@@ -531,6 +531,76 @@ class _RatingCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _BookingBadge extends StatelessWidget {
+  const _BookingBadge({
+    required this.mode,
+    required this.queueStatus,
+    required this.openToday,
+  });
+
+  final ChamberBookingMode mode;
+  final QueueStatus? queueStatus;
+  final bool openToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (label, bg, fg) = _resolve(scheme);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: fg,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  (String, Color, Color) _resolve(ColorScheme scheme) {
+    if (!openToday) {
+      return (
+        'Closed today',
+        scheme.surfaceContainerHigh,
+        scheme.onSurfaceVariant,
+      );
+    }
+    if (queueStatus == QueueStatus.closed) {
+      return (
+        'Closed for today',
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+      );
+    }
+    if (mode == ChamberBookingMode.queueOnly) {
+      return (
+        'Walk-in only',
+        scheme.surfaceContainerHigh,
+        scheme.onSurfaceVariant,
+      );
+    }
+    if (queueStatus == QueueStatus.open) {
+      return (
+        'Book a serial',
+        scheme.primary,
+        scheme.onPrimary,
+      );
+    }
+    // Pending — chamber day today but queue not opened yet.
+    return (
+      'Opens later',
+      scheme.surfaceContainerHigh,
+      scheme.onSurfaceVariant,
     );
   }
 }
