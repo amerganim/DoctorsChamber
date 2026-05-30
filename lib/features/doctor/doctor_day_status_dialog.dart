@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import 'doctor_day_status.dart';
 import 'doctor_day_status_repository.dart';
 
@@ -49,27 +51,18 @@ class _DoctorDayStatusDialogState
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).failedShort(e.toString()))),
       );
     }
   }
 
-  String get _noteLabel => switch (_status) {
-        DoctorDayStatus.available => 'Note (optional)',
-        DoctorDayStatus.onLeave => 'Reason (optional)',
-        DoctorDayStatus.atHospital => 'Hospital name',
-      };
-
-  String get _noteHint => switch (_status) {
-        DoctorDayStatus.available => 'e.g. Visiting hours flexible today',
-        DoctorDayStatus.onLeave => 'e.g. Personal',
-        DoctorDayStatus.atHospital => 'e.g. Square Hospital, Cardiology unit',
-      };
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text("Today's availability"),
+      title: Text(l10n.todaysAvailability),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -86,7 +79,7 @@ class _DoctorDayStatusDialogState
                     .map(
                       (s) => RadioListTile<DoctorDayStatus>(
                         value: s,
-                        title: Text(s.displayName),
+                        title: Text(l10n.dayStatusDisplay(s)),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                       ),
@@ -100,8 +93,8 @@ class _DoctorDayStatusDialogState
               enabled: !_saving,
               maxLength: 80,
               decoration: InputDecoration(
-                labelText: _noteLabel,
-                hintText: _noteHint,
+                labelText: l10n.noteOptionalLabel,
+                hintText: l10n.noteOptionalHint,
               ),
             ),
           ],
@@ -110,7 +103,7 @@ class _DoctorDayStatusDialogState
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _save,
@@ -120,7 +113,7 @@ class _DoctorDayStatusDialogState
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );

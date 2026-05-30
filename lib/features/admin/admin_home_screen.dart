@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../shared/widgets/error_state.dart';
 import '../admin_invitations/invitation.dart';
 import '../admin_invitations/invitation_repository.dart';
@@ -19,27 +20,27 @@ class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key});
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-            'You will need to sign in again to manage chambers.'),
+        title: Text(l10n.signOutDialogTitle),
+        content: Text(l10n.signOutDialogBodyAdmin),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Stay'),
+            child: Text(l10n.stay),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sign out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
     if (!context.mounted) return;
-    LoadingOverlay.show(context, 'Signing you out…');
+    LoadingOverlay.show(context, l10n.signingOut);
     await signOutDoctor();
     ref.invalidate(userRoleEnrollmentProvider);
     if (!context.mounted) return;
@@ -50,6 +51,7 @@ class AdminHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final today = todayWeekday();
     final email = currentUserEmail();
@@ -64,10 +66,10 @@ class AdminHomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chamber Admin'),
+        title: Text(l10n.adminAppBarTitle),
         actions: [
           IconButton(
-            tooltip: 'Sign out',
+            tooltip: l10n.signOut,
             icon: const Icon(Icons.logout),
             onPressed: () => _confirmSignOut(context, ref),
           ),
@@ -101,14 +103,14 @@ class AdminHomeScreen extends ConsumerWidget {
                     Icon(Icons.local_hospital_outlined,
                         size: 64, color: scheme.onSurfaceVariant),
                     const SizedBox(height: 16),
-                    const Text(
-                      'No chambers assigned',
-                      style: TextStyle(
+                    Text(
+                      l10n.noChambersAssigned,
+                      style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'A doctor needs to invite you to manage their chamber.',
+                      l10n.noChambersAssignedHint,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
@@ -123,11 +125,12 @@ class AdminHomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               if (pendingInvitations.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 8),
                   child: Text(
-                    'Invitations',
-                    style: TextStyle(
+                    l10n.invitationsSection,
+                    style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -145,9 +148,9 @@ class AdminHomeScreen extends ConsumerWidget {
                       horizontal: 4, vertical: 8),
                   child: Row(
                     children: [
-                      const Text(
-                        "Today's chambers",
-                        style: TextStyle(
+                      Text(
+                        l10n.todaysChambersSection,
+                        style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(width: 8),
@@ -202,13 +205,15 @@ class _InvitationTile extends ConsumerWidget {
             adminDisplayName: currentUserDisplayName() ?? '',
           );
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Joined the chamber.')),
+        SnackBar(content: Text(l10n.invitationJoined)),
       );
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
+        SnackBar(content: Text(l10n.invitationFailed(e.toString()))),
       );
     }
   }
@@ -224,6 +229,7 @@ class _InvitationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
@@ -240,7 +246,7 @@ class _InvitationTile extends ConsumerWidget {
                   size: 18, color: scheme.onPrimaryContainer),
               const SizedBox(width: 8),
               Text(
-                'YOU\'VE BEEN INVITED',
+                l10n.invitedHeader,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -253,8 +259,8 @@ class _InvitationTile extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(
             invitation.invitedByDoctorName.isEmpty
-                ? 'A doctor wants you to manage a chamber.'
-                : '${invitation.invitedByDoctorName} wants you to manage a chamber.',
+                ? l10n.invitationBodyAnonymous
+                : l10n.invitationBodyByDoctor(invitation.invitedByDoctorName),
             style: TextStyle(
                 fontSize: 14, color: scheme.onPrimaryContainer),
           ),
@@ -264,13 +270,13 @@ class _InvitationTile extends ConsumerWidget {
               Expanded(
                 child: FilledButton(
                   onPressed: () => _accept(context, ref),
-                  child: const Text('Accept'),
+                  child: Text(l10n.accept),
                 ),
               ),
               const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: () => _decline(context, ref),
-                child: const Text('Decline'),
+                child: Text(l10n.decline),
               ),
             ],
           ),
@@ -288,6 +294,7 @@ class _ChamberTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final dateKey = todayDateKey();
     final queueAsync =
@@ -318,19 +325,19 @@ class _ChamberTile extends ConsumerWidget {
           scheme.surfaceContainerHigh,
           scheme.onSurfaceVariant,
           Icons.schedule_outlined,
-          'Not opened',
+          l10n.queueBadgeNotOpened,
         ),
       QueueStatus.open => (
           Colors.green.shade100,
           Colors.green.shade900,
           Icons.circle,
-          'Live',
+          l10n.queueBadgeLive,
         ),
       QueueStatus.closed => (
           scheme.errorContainer,
           scheme.onErrorContainer,
           Icons.lock_outline,
-          'Closed',
+          l10n.queueBadgeClosed,
         ),
     };
 
@@ -404,7 +411,7 @@ class _ChamberTile extends ConsumerWidget {
                         size: 13, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
-                      'Closed today',
+                      l10n.chamberClosedToday,
                       style: TextStyle(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
@@ -427,7 +434,7 @@ class _ChamberTile extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: _ChamberStat(
-                          label: 'Now seeing',
+                          label: l10n.nowSeeing,
                           value: currentSerial > 0 ? '#$currentSerial' : '—',
                           highlight: currentSerial > 0,
                         ),
@@ -435,14 +442,14 @@ class _ChamberTile extends ConsumerWidget {
                       _ChamberStatDivider(color: scheme.outlineVariant),
                       Expanded(
                         child: _ChamberStat(
-                          label: 'Waiting',
+                          label: l10n.waiting,
                           value: '${waitingCount + arrivedCount}',
                         ),
                       ),
                       _ChamberStatDivider(color: scheme.outlineVariant),
                       Expanded(
                         child: _ChamberStat(
-                          label: 'Done',
+                          label: l10n.done,
                           value: '$completed',
                         ),
                       ),
@@ -458,7 +465,7 @@ class _ChamberTile extends ConsumerWidget {
                           size: 13, color: scheme.primary),
                       const SizedBox(width: 6),
                       Text(
-                        'Patients are waiting — tap to start',
+                        l10n.patientsWaitingPrompt,
                         style: TextStyle(
                             fontSize: 12,
                             color: scheme.primary,

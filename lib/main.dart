@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
-import 'features/auth/user_role_enrollment.dart';
+import 'core/prefs.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {

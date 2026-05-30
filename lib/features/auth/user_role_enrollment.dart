@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/prefs.dart';
 
 enum UserRoleEnrollment {
   /// Not signed in (or only anonymously) — show every card.
@@ -17,13 +18,6 @@ enum UserRoleEnrollment {
   /// Both — show both Doctor and Admin cards.
   both;
 }
-
-/// Overridden in main() with a real SharedPreferences instance loaded
-/// before runApp, so synchronous reads from prefs are possible everywhere.
-final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError(
-      'sharedPreferencesProvider must be overridden in main()');
-});
 
 String _cacheKey(String uid) => 'enrollment_$uid';
 

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../../shared/widgets/error_state.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
@@ -33,6 +35,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final doctorsAsync = ref.watch(allDoctorsStreamProvider);
     final chambersAsync = ref.watch(allChambersStreamProvider);
     final scheme = Theme.of(context).colorScheme;
@@ -40,15 +43,15 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Find a doctor'),
+        title: Text(l10n.patientAppBarTitle),
         actions: [
           IconButton(
-            tooltip: 'My Bookings',
+            tooltip: l10n.myBookings,
             icon: const Icon(Icons.event_outlined),
             onPressed: () => context.push('/patient/bookings'),
           ),
           IconButton(
-            tooltip: 'Sign out',
+            tooltip: l10n.signOut,
             icon: const Icon(Icons.logout),
             onPressed: () => context.go('/'),
           ),
@@ -62,7 +65,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search by doctor, specialty, or chamber',
+                  hintText: l10n.searchHint,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _search.isEmpty
                       ? null
@@ -144,8 +147,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                             const SizedBox(height: 16),
                             Text(
                               allDoctors.isEmpty
-                                  ? 'No doctors yet'
-                                  : 'No doctors match your search',
+                                  ? l10n.noDoctorsYet
+                                  : l10n.noDoctorsMatch,
                               style: const TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w600),
@@ -154,8 +157,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                             const SizedBox(height: 8),
                             Text(
                               allDoctors.isEmpty
-                                  ? 'Doctors will appear here as they sign up.'
-                                  : 'Try a different keyword or clear filters.',
+                                  ? l10n.noDoctorsYetHint
+                                  : l10n.noDoctorsMatchHint,
                               textAlign: TextAlign.center,
                               style: TextStyle(color: scheme.onSurfaceVariant),
                             ),
@@ -207,6 +210,7 @@ class _FilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final specialties = {
       for (final d in doctors) ...d.specialties,
     }.toList()
@@ -216,7 +220,7 @@ class _FilterRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       children: [
         FilterChip(
-          label: const Text('Available today'),
+          label: Text(l10n.availableTodayFilter),
           selected: availableToday,
           onSelected: (_) => onToggleAvailable(),
         ),
@@ -342,7 +346,7 @@ class _DoctorCard extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'TODAY',
+                              AppLocalizations.of(context).todayBadge,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -387,7 +391,7 @@ class _DoctorCard extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               otherChambers.length > 1
-                                  ? '${otherChambers.first.name} +${otherChambers.length - 1} more'
+                                  ? '${otherChambers.first.name} ${AppLocalizations.of(context).morePlus(otherChambers.length - 1)}'
                                   : otherChambers.first.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -442,7 +446,9 @@ class _DayStatusBadge extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  status.status.displayName.toUpperCase(),
+                  AppLocalizations.of(context)
+                      .dayStatusDisplay(status.status)
+                      .toUpperCase(),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,

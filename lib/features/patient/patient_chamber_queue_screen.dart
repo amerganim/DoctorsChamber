@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/weekday.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_extensions.dart';
 import '../auth/current_user.dart';
 import '../chambers/chamber.dart';
 import '../chambers/chamber_repository.dart';
@@ -44,15 +46,18 @@ class PatientChamberQueueScreen extends ConsumerWidget {
         queueAsync.value?.status == QueueStatus.open &&
         ownActiveBooking == null;
 
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(chamber?.name ?? 'Chamber')),
+      appBar: AppBar(title: Text(chamber?.name ?? l10n.chambersSection)),
       body: SafeArea(
         child: queueAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Failed: $e')),
+          error: (e, _) =>
+              Center(child: Text(l10n.queueLoadFailed(e.toString()))),
           data: (queue) => entriesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Failed: $e')),
+            error: (e, _) =>
+                Center(child: Text(l10n.queueLoadFailed(e.toString()))),
             data: (entries) => _Body(
               chamber: chamber,
               queue: queue,
@@ -66,7 +71,7 @@ class PatientChamberQueueScreen extends ConsumerWidget {
           ? FloatingActionButton.extended(
               onPressed: () => _book(context, chamber),
               icon: const Icon(Icons.add),
-              label: const Text('Book serial'),
+              label: Text(l10n.bookSerial),
             )
           : null,
     );
@@ -79,7 +84,9 @@ class PatientChamberQueueScreen extends ConsumerWidget {
     );
     if (serial != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booked as #$serial')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).bookedAsSerial(serial))),
       );
     }
   }
@@ -155,8 +162,9 @@ class _Body extends ConsumerWidget {
                 Icon(Icons.pause_circle_outline,
                     color: scheme.onSurfaceVariant),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('No active consultation right now'),
+                Expanded(
+                  child: Text(AppLocalizations.of(context)
+                      .noConsultationRightNow),
                 ),
               ],
             ),
@@ -167,7 +175,7 @@ class _Body extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
-              'Up next (${upcoming.length})',
+              AppLocalizations.of(context).upNextSection(upcoming.length),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -190,7 +198,8 @@ class _Body extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
-              'Completed today (${completed.length})',
+              AppLocalizations.of(context)
+                  .completedTodaySection(completed.length),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -227,9 +236,9 @@ class _Body extends ConsumerWidget {
             current.isEmpty &&
             upcoming.isEmpty &&
             completed.isEmpty)
-          const _Centered(
+          _Centered(
             icon: Icons.people_outline,
-            title: 'No patients in the queue yet',
+            title: AppLocalizations.of(context).noPatientsInQueue,
           ),
       ],
     );
@@ -249,19 +258,20 @@ class _Body extends ConsumerWidget {
   }
 
   Future<void> _confirmCancel(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Cancel booking #${ownBooking!.serial}?'),
-        content: const Text('Your serial will be released. You can re-book if the queue still has space.'),
+        title: Text(l10n.cancelBookingTitle(ownBooking!.serial)),
+        content: Text(l10n.cancelBookingBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep booking'),
+            child: Text(l10n.keepBooking),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Cancel booking'),
+            child: Text(l10n.cancelBookingAction),
           ),
         ],
       ),
@@ -276,12 +286,12 @@ class _Body extends ConsumerWidget {
           );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booking #${ownBooking!.serial} cancelled')),
+        SnackBar(content: Text(l10n.bookingCancelled(ownBooking!.serial))),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cancel failed: $e')),
+        SnackBar(content: Text(l10n.cancelFailed(e.toString()))),
       );
     }
   }
@@ -324,7 +334,8 @@ class _StatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  queue.doctorStatus.displayName,
+                  AppLocalizations.of(context)
+                      .doctorStatusDisplay(queue.doctorStatus),
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w600, color: fg),
                 ),
@@ -366,7 +377,7 @@ class _NowServingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Now serving',
+                  AppLocalizations.of(context).nowServingTitle,
                   style: TextStyle(
                       fontSize: 13,
                       color: scheme.onPrimaryContainer,
@@ -421,7 +432,7 @@ class _OwnBookingBanner extends StatelessWidget {
                   color: scheme.onPrimary, size: 22),
               const SizedBox(width: 8),
               Text(
-                'Your booking',
+                AppLocalizations.of(context).yourBooking,
                 style: TextStyle(
                   color: scheme.onPrimary,
                   fontSize: 13,
@@ -435,7 +446,7 @@ class _OwnBookingBanner extends StatelessWidget {
                   foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
             ],
           ),
@@ -456,7 +467,8 @@ class _OwnBookingBanner extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
-                  booking.status.displayName,
+                  AppLocalizations.of(context)
+                      .entryStatusDisplay(booking.status),
                   style: TextStyle(
                     color: scheme.onPrimary.withValues(alpha: 0.9),
                     fontSize: 14,
@@ -469,7 +481,7 @@ class _OwnBookingBanner extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    '~$waitMin min wait',
+                    AppLocalizations.of(context).waitMin(waitMin),
                     style: TextStyle(
                       color: scheme.onPrimary.withValues(alpha: 0.9),
                       fontSize: 13,
@@ -495,11 +507,14 @@ class _UpNextRow extends StatelessWidget {
   final int positionFromNow;
   final bool isOwn;
 
-  String get _statusLabel => switch (entry.status) {
-        QueueEntryStatus.arrived => 'Arrived',
-        QueueEntryStatus.waiting => 'Not arrived',
-        _ => entry.status.displayName,
-      };
+  String _statusLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (entry.status) {
+      QueueEntryStatus.arrived => l10n.entryArrived,
+      QueueEntryStatus.waiting => l10n.entryNotArrived,
+      _ => l10n.entryStatusDisplay(entry.status),
+    };
+  }
 
   Color _statusColor(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -543,7 +558,7 @@ class _UpNextRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _statusLabel,
+              _statusLabel(context),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -552,7 +567,7 @@ class _UpNextRow extends StatelessWidget {
             ),
           ),
           Text(
-            '~$estimateMin min',
+            AppLocalizations.of(context).approxMin(estimateMin),
             style: TextStyle(
                 fontSize: 12, color: scheme.onSurfaceVariant),
           ),
@@ -569,6 +584,7 @@ class _PendingChamberView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final today = todayWeekday();
     final openToday = chamber?.days.contains(today) ?? false;
@@ -600,8 +616,8 @@ class _PendingChamberView extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 openToday
-                    ? "Queue hasn't started yet"
-                    : 'Chamber closed today',
+                    ? l10n.queueNotStartedTitle
+                    : l10n.chamberClosedTodayTitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -614,8 +630,8 @@ class _PendingChamberView extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 openToday
-                    ? 'The admin will open the queue when the chamber begins. Check back at the start time below.'
-                    : 'This chamber operates on different days. See the schedule below.',
+                    ? l10n.adminWillOpenSoon
+                    : l10n.differentDaysHint,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: openToday
@@ -655,27 +671,27 @@ class _PendingChamberView extends StatelessWidget {
                 const SizedBox(height: 16),
                 _InfoRow(
                   icon: Icons.calendar_today_outlined,
-                  label: 'Open days',
+                  label: l10n.openDaysLabel,
                   value: openDaysLine,
                 ),
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.access_time,
-                  label: 'Hours',
+                  label: l10n.hoursLabel,
                   value:
                       '${chamber!.startTime} – ${chamber!.endTime}',
                 ),
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.payments_outlined,
-                  label: 'Consultation fee',
+                  label: l10n.consultationFeeLabel,
                   value: '৳${chamber!.consultationFee}',
                 ),
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.bookmark_outline,
-                  label: 'Booking',
-                  value: chamber!.bookingMode.displayName,
+                  label: l10n.bookingLabel,
+                  value: l10n.bookingModeDisplay(chamber!.bookingMode),
                 ),
               ],
             ),
@@ -779,7 +795,7 @@ class _ClosedBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Closed for today',
+                  AppLocalizations.of(context).closedForTodayBanner,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -789,10 +805,9 @@ class _ClosedBanner extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   closedAt != null
-                      ? 'The doctor wrapped up at ${formatTime12h(closedAt!)}. '
-                          'New bookings will open on the next chamber day.'
-                      : 'No new bookings are being accepted. '
-                          'Please check back on the next chamber day.',
+                      ? AppLocalizations.of(context)
+                          .closedAtPattern(formatTime12h(closedAt!))
+                      : AppLocalizations.of(context).closedNoTimeMessage,
                   style: TextStyle(
                       fontSize: 13, color: scheme.onErrorContainer),
                 ),
@@ -829,7 +844,7 @@ class _BroadcastBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'From the chamber',
+                  AppLocalizations.of(context).broadcastFromChamber,
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

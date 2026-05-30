@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../core/locale_settings.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../shared/widgets/loading_overlay.dart';
 import '../../shared/widgets/role_card.dart';
 import '../platform/platform_lock.dart';
@@ -99,9 +101,11 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
   @override
   Widget build(BuildContext context) {
     final ref = this.ref;
+    final l10n = AppLocalizations.of(context);
     final signedIn = isDoctorSignedIn();
     final enrollmentAsync = ref.watch(userRoleEnrollmentProvider);
     final cached = ref.watch(cachedEnrollmentProvider);
+    final locale = ref.watch(localeProvider);
     // Prefer the fresh Firestore result; fall back to the cached value so
     // returning users see the right card instantly on cold start.
     final enrollment = enrollmentAsync.value ?? cached;
@@ -120,40 +124,50 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              Text(
-                'Doctor Inside',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.appName,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                     ),
+                  ),
+                  _LanguageChip(currentLanguageCode: locale.languageCode),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
-                'Find doctors, book serials, manage chambers.',
+                l10n.appTagline,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 48),
-              const Text(
-                'Who are you?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              Text(
+                l10n.whoAreYou,
+                style: const TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 20),
               RoleCard(
                 icon: Icons.person_outline,
-                title: 'Patient',
-                subtitle: 'Find doctors, book serials, see live queues',
+                title: l10n.rolePatient,
+                subtitle: l10n.rolePatientSubtitle,
                 onTap: () => _pickRole(context, UserRole.patient),
               ),
               const SizedBox(height: 12),
               if (showDoctor) ...[
                 RoleCard(
                   icon: Icons.medical_services_outlined,
-                  title: 'Doctor',
+                  title: l10n.roleDoctor,
                   subtitle: signedIn
-                      ? 'Manage chambers and queue'
-                      : 'Sign in with Google · manage chambers and queue',
+                      ? l10n.roleDoctorSubtitleSignedIn
+                      : l10n.roleDoctorSubtitleSignedOut,
                   onTap: () => _pickRole(context, UserRole.doctor),
                 ),
                 const SizedBox(height: 12),
@@ -161,10 +175,10 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
               if (showAdmin) ...[
                 RoleCard(
                   icon: Icons.assignment_outlined,
-                  title: 'Chamber Admin',
+                  title: l10n.roleChamberAdmin,
                   subtitle: signedIn
-                      ? 'Run the daily queue for a doctor'
-                      : 'Sign in with Google · run the daily queue for a doctor',
+                      ? l10n.roleChamberAdminSubtitleSignedIn
+                      : l10n.roleChamberAdminSubtitleSignedOut,
                   onTap: () => _pickRole(context, UserRole.admin),
                 ),
                 const SizedBox(height: 12),
@@ -175,11 +189,55 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
                   alignment: Alignment.center,
                   child: TextButton.icon(
                     icon: const Icon(Icons.verified_user_outlined, size: 16),
-                    label: const Text('Platform admin'),
+                    label: Text(l10n.platformAdmin),
                     onPressed: () => _openPlatformAdmin(context, ref),
                   ),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageChip extends ConsumerWidget {
+  const _LanguageChip({required this.currentLanguageCode});
+
+  final String currentLanguageCode;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final isBangla = currentLanguageCode == 'bn';
+    return Tooltip(
+      message: l10n.languageSwitchTooltip,
+      child: Material(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => ref.read(localeProvider.notifier).toggle(),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.translate, size: 14, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Text(
+                  isBangla
+                      ? l10n.languageEnglishShort
+                      : l10n.languageBanglaShort,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+
 class _PlatformUnlocked extends Notifier<bool> {
   @override
   bool build() => false;
@@ -67,14 +69,15 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
     final pin = _pinController.text.trim();
     if (_isSettingNewPin) {
       if (pin.length < 4) {
-        setState(() => _error = 'PIN must be at least 4 digits');
+        setState(() => _error = l10n.pinTooShort);
         return;
       }
       if (pin != _confirmController.text.trim()) {
-        setState(() => _error = "PINs don't match");
+        setState(() => _error = l10n.pinsDontMatch);
         return;
       }
       setState(() {
@@ -92,7 +95,7 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
         if (!mounted) return;
         setState(() {
           _saving = false;
-          _error = 'Failed to save: $e';
+          _error = l10n.saveToPrefsFailed(e.toString());
         });
       }
     } else {
@@ -100,7 +103,7 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
         Navigator.of(context).pop(true);
       } else {
         setState(() {
-          _error = 'Wrong PIN';
+          _error = l10n.wrongPin;
           _pinController.clear();
         });
       }
@@ -109,17 +112,16 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text(_isSettingNewPin ? 'Set platform admin PIN' : 'Enter PIN'),
+      title: Text(_isSettingNewPin ? l10n.setPinTitle : l10n.enterPinTitle),
       content: SingleChildScrollView(
         child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _isSettingNewPin
-                ? 'No PIN has been set yet. Choose a PIN (4–8 digits) to protect the platform admin area. You can change it anytime in Firestore at platform/config.pin.'
-                : 'This area is restricted to the platform team.',
+            _isSettingNewPin ? l10n.setPinHint : l10n.restrictedAreaText,
             style: const TextStyle(fontSize: 13),
           ),
           const SizedBox(height: 16),
@@ -132,8 +134,8 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(8),
             ],
-            decoration: const InputDecoration(
-              labelText: 'PIN',
+            decoration: InputDecoration(
+              labelText: l10n.pinLabel,
               counterText: '',
             ),
             onSubmitted: (_) => _submit(),
@@ -148,8 +150,8 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(8),
               ],
-              decoration: const InputDecoration(
-                labelText: 'Confirm PIN',
+              decoration: InputDecoration(
+                labelText: l10n.confirmPinLabel,
                 counterText: '',
               ),
               onSubmitted: (_) => _submit(),
@@ -169,7 +171,7 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _submit,
@@ -179,7 +181,7 @@ class _PlatformPinDialogState extends State<_PlatformPinDialog> {
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(_isSettingNewPin ? 'Set PIN' : 'Unlock'),
+              : Text(_isSettingNewPin ? l10n.setPinAction : l10n.unlockAction),
         ),
       ],
     );
