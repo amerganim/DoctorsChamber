@@ -2,8 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'features/auth/user_role_enrollment.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -17,5 +19,13 @@ Future<void> main() async {
       // the kDevPatientId sentinel until anonymous sign-in succeeds.
     }
   }
-  runApp(const ProviderScope(child: DoctorInsideApp()));
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const DoctorInsideApp(),
+    ),
+  );
 }

@@ -99,12 +99,18 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
   @override
   Widget build(BuildContext context) {
     final ref = this.ref;
-    final enrollment =
-        ref.watch(userRoleEnrollmentProvider).value ??
-            UserRoleEnrollment.neither;
-    final showDoctor = enrollment != UserRoleEnrollment.admin;
-    final showAdmin = enrollment != UserRoleEnrollment.doctor;
     final signedIn = isDoctorSignedIn();
+    final enrollmentAsync = ref.watch(userRoleEnrollmentProvider);
+    final cached = ref.watch(cachedEnrollmentProvider);
+    // Prefer the fresh Firestore result; fall back to the cached value so
+    // returning users see the right card instantly on cold start.
+    final enrollment = enrollmentAsync.value ?? cached;
+    final canRenderProfessional = !signedIn || enrollment != null;
+    final effectiveEnrollment = enrollment ?? UserRoleEnrollment.neither;
+    final showDoctor = canRenderProfessional &&
+        effectiveEnrollment != UserRoleEnrollment.admin;
+    final showAdmin = canRenderProfessional &&
+        effectiveEnrollment != UserRoleEnrollment.doctor;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: SafeArea(
