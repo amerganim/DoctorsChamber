@@ -38,7 +38,8 @@ class QueueScreen extends ConsumerWidget {
       ),
     );
 
-    return Scaffold(
+    return ScaffoldMessenger(
+      child: Scaffold(
       appBar: AppBar(
         title: Text(chamber?.name ?? 'Queue'),
         actions: [
@@ -109,6 +110,7 @@ class QueueScreen extends ConsumerWidget {
               label: const Text('Add patient'),
             )
           : null,
+      ),
     );
   }
 
@@ -1110,10 +1112,11 @@ class _EntryCard extends ConsumerWidget {
       if (!context.mounted || successMessage == null) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
+      final controller = messenger.showSnackBar(
         SnackBar(
           content: Text(successMessage),
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
           action: undo == null
               ? null
               : SnackBarAction(
@@ -1126,6 +1129,11 @@ class _EntryCard extends ConsumerWidget {
                 ),
         ),
       );
+      // Android extends snackbar duration when there's an action button
+      // (accessibility "time to take action"). Force-close after 5s.
+      Future<void>.delayed(const Duration(seconds: 5), () {
+        controller.close();
+      });
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
