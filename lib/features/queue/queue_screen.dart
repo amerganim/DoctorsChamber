@@ -73,6 +73,25 @@ class QueueScreen extends ConsumerWidget {
               onPressed: () =>
                   _confirmCloseQueue(context, ref, chamberId, date),
             ),
+            PopupMenuButton<String>(
+              tooltip: 'More',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (v) {
+                if (v == 'clear_all') {
+                  _confirmClearAll(context, ref, chamberId, date);
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem<String>(
+                  value: 'clear_all',
+                  child: ListTile(
+                    leading: Icon(Icons.delete_sweep_outlined),
+                    title: Text('Clear all patients'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
           ],
           if (queueAsync.value?.status == QueueStatus.closed)
             IconButton(
@@ -136,6 +155,53 @@ class QueueScreen extends ConsumerWidget {
     );
     if (confirmed == true) {
       await ref.read(queueRepositoryProvider).closeQueue(chamberId, date);
+    }
+  }
+
+  Future<void> _confirmClearAll(BuildContext context, WidgetRef ref,
+      String chamberId, String date) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Clear all patients?'),
+        content: const Text(
+            'This will delete every entry from today\'s queue, including those '
+            'already seen. The queue stays open so you can start fresh. '
+            'This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear all'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref
+          .read(queueRepositoryProvider)
+          .clearAllEntries(chamberId: chamberId, date: date);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Queue cleared'),
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Clear failed: $e')),
+      );
     }
   }
 

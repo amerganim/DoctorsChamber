@@ -378,6 +378,26 @@ class QueueRepository {
     await _entriesCol(chamberId, date).doc(entryId).delete();
   }
 
+  Future<void> clearAllEntries({
+    required String chamberId,
+    required String date,
+  }) async {
+    final snap = await _entriesCol(chamberId, date).get();
+    if (snap.docs.isEmpty) return;
+    var batch = _firestore.batch();
+    var ops = 0;
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+      ops++;
+      if (ops >= 450) {
+        await batch.commit();
+        batch = _firestore.batch();
+        ops = 0;
+      }
+    }
+    if (ops > 0) await batch.commit();
+  }
+
   Future<void> restoreToSerial({
     required String chamberId,
     required String date,
