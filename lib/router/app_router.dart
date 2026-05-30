@@ -6,6 +6,7 @@ import '../features/auth/otp_verify_screen.dart';
 import '../features/auth/role_select_screen.dart';
 import '../features/auth/user_role.dart';
 import '../features/chambers/add_chamber_screen.dart';
+import '../features/chambers/chamber.dart';
 import '../features/chambers/chambers_list_screen.dart';
 import '../features/doctor/doctor_home_screen.dart';
 import '../features/doctor/doctor_profile_editor_screen.dart';
@@ -80,6 +81,11 @@ final appRouter = GoRouter(
             GoRoute(
               path: 'new',
               builder: (_, _) => const AddChamberScreen(),
+            ),
+            GoRoute(
+              path: 'edit',
+              builder: (_, state) =>
+                  AddChamberScreen(existing: state.extra as Chamber?),
             ),
           ],
         ),

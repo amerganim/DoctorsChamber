@@ -40,6 +40,12 @@ class ChamberRepository {
     return ref.id;
   }
 
+  Future<void> update(Chamber chamber) async {
+    await _chambers
+        .doc(chamber.id)
+        .set(chamber.toMap(), SetOptions(merge: true));
+  }
+
   Future<void> delete(String id) async {
     await _chambers.doc(id).delete();
   }

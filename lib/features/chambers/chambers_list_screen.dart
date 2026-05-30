@@ -96,6 +96,14 @@ class _ChamberCard extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit',
+                  onPressed: () => context.push(
+                    '/doctor/chambers/edit',
+                    extra: chamber,
+                  ),
+                ),
+                IconButton(
                   icon: const Icon(Icons.delete_outline),
                   tooltip: 'Delete',
                   onPressed: () => _confirmDelete(context, ref),

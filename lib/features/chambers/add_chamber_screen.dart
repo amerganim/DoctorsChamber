@@ -7,7 +7,10 @@ import 'chamber.dart';
 import 'chamber_repository.dart';
 
 class AddChamberScreen extends ConsumerStatefulWidget {
-  const AddChamberScreen({super.key});
+  const AddChamberScreen({super.key, this.existing});
+
+  /// When non-null, the screen edits this chamber instead of creating a new one.
+  final Chamber? existing;
 
   @override
   ConsumerState<AddChamberScreen> createState() => _AddChamberScreenState();
@@ -25,6 +28,34 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
   TimeOfDay _endTime = const TimeOfDay(hour: 21, minute: 0);
   ChamberBookingMode _bookingMode = ChamberBookingMode.fullDigital;
   bool _saving = false;
+
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing == null) return;
+    _nameController.text = existing.name;
+    _addressController.text = existing.address;
+    _feeController.text = existing.consultationFee.toString();
+    _capController.text = (existing.dailyAppBookingCap ?? 20).toString();
+    _selectedDays
+      ..clear()
+      ..addAll(existing.days);
+    _startTime = _parseTime(existing.startTime);
+    _endTime = _parseTime(existing.endTime);
+    _bookingMode = existing.bookingMode;
+  }
+
+  TimeOfDay _parseTime(String hhmm) {
+    final parts = hhmm.split(':');
+    if (parts.length != 2) return const TimeOfDay(hour: 17, minute: 0);
+    return TimeOfDay(
+      hour: int.tryParse(parts[0]) ?? 17,
+      minute: int.tryParse(parts[1]) ?? 0,
+    );
+  }
 
   @override
   void dispose() {
@@ -59,9 +90,10 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
       return;
     }
     setState(() => _saving = true);
+    final existing = widget.existing;
     final chamber = Chamber(
-      id: '',
-      doctorId: currentDoctorId(),
+      id: existing?.id ?? '',
+      doctorId: existing?.doctorId ?? currentDoctorId(),
       name: _nameController.text.trim(),
       address: _addressController.text.trim(),
       days: kWeekdays.where(_selectedDays.contains).toList(),
@@ -74,7 +106,12 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
           : null,
     );
     try {
-      await ref.read(chamberRepositoryProvider).add(chamber);
+      final repo = ref.read(chamberRepositoryProvider);
+      if (_isEditing) {
+        await repo.update(chamber);
+      } else {
+        await repo.add(chamber);
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
@@ -89,7 +126,9 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Chamber')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Chamber' : 'Add Chamber'),
+      ),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -228,7 +267,7 @@ class _AddChamberScreenState extends ConsumerState<AddChamberScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save chamber'),
+                    : Text(_isEditing ? 'Save changes' : 'Save chamber'),
               ),
             ],
           ),
